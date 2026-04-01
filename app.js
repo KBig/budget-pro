@@ -2075,5 +2075,8 @@ else showProfileScreen();
 /* Check for transfer via URL */
 checkTransferURL();
 /* Register service worker for PWA/offline */
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(){});}
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(function(reg){reg.update();}).catch(function(){});
+navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.type==='SW_UPDATED'){window.location.reload();}});
+}
 })();

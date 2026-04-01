@@ -1,4 +1,4 @@
-var CACHE_NAME='budget-pro-v4';
+var CACHE_NAME='budget-pro-v5';
 var ASSETS=[
 './',
 './index.html',
@@ -13,9 +13,15 @@ self.skipWaiting();
 });
 
 self.addEventListener('activate',function(e){
-e.waitUntil(caches.keys().then(function(names){
+e.waitUntil(
+caches.keys().then(function(names){
 return Promise.all(names.filter(function(n){return n!==CACHE_NAME;}).map(function(n){return caches.delete(n);}));
-}));
+}).then(function(){
+return self.clients.matchAll();
+}).then(function(clients){
+clients.forEach(function(client){client.postMessage({type:'SW_UPDATED'});});
+})
+);
 self.clients.claim();
 });
 
