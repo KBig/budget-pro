@@ -1,4 +1,4 @@
-var CACHE_NAME='budget-pro-v2';
+var CACHE_NAME='budget-pro-v3';
 var ASSETS=[
 './',
 './index.html',
