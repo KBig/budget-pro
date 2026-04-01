@@ -124,10 +124,11 @@ var WIZARD_STEPS=[
 {v:'autonome',l:'Travailleur autonome',icon:'🏠',d:'Pigiste / entreprise'},
 {v:'etudiant',l:'Etudiant(e)',icon:'🎓',d:'Aux etudes'},
 {v:'retraite',l:'Retraite(e)',icon:'🌅',d:'A la retraite'}]},
-{id:'housing',title:'Etes-vous proprietaire ou locataire?',desc:'Personnalise les categories de depenses et active les outils hypothecaires.',type:'options',field:'housing',options:[
+{id:'housing',title:'Quelle est votre situation de logement?',desc:'Personnalise les categories de depenses et active les outils hypothecaires.',type:'options',field:'housing',options:[
 {v:'locataire',l:'Locataire',icon:'🏢',d:'Loyer mensuel'},
 {v:'proprietaire',l:'Proprietaire',icon:'🏠',d:'Avec hypotheque'},
-{v:'proprio-libre',l:'Proprio sans hypotheque',icon:'🏡',d:'Propriete payee'}]},
+{v:'proprio-libre',l:'Proprio sans hypotheque',icon:'🏡',d:'Propriete payee'},
+{v:'chez-parents',l:'Chez mes parents',icon:'👨‍👩‍👦',d:'Gratuit ou contribution'}]},
 {id:'goal',title:'Quel est votre objectif principal?',desc:'Met en avant les outils et conseils les plus pertinents pour vous.',type:'options',field:'mainGoal',options:[
 {v:'epargne',l:'Epargner plus',icon:'💰',d:'Augmenter mon epargne'},
 {v:'dette',l:'Rembourser mes dettes',icon:'📉',d:'Me liberer des dettes'},
@@ -145,14 +146,39 @@ var WIZARD_STEPS=[
 {v:'50-75k',l:'50 000 - 75 000$',icon:'',d:''},
 {v:'75-100k',l:'75 000 - 100 000$',icon:'',d:''},
 {v:'100-150k',l:'100 000 - 150 000$',icon:'',d:''},
-{v:'>150k',l:'Plus de 150 000$',icon:'',d:''}]}
+{v:'>150k',l:'Plus de 150 000$',icon:'',d:''}]},
+{id:'savings',title:'Epargnez-vous regulierement?',desc:'Aide a evaluer vos habitudes financieres actuelles.',type:'options',field:'savingsHabit',options:[
+{v:'aucune',l:'Pas encore',icon:'😅',d:'Je commence'},
+{v:'irregulier',l:'De temps en temps',icon:'🔄',d:'Pas chaque mois'},
+{v:'regulier',l:'Chaque mois',icon:'✅',d:'Montant fixe'},
+{v:'agressif',l:'Epargne agressive',icon:'🚀',d:'Je maximise'}]},
+{id:'debt',title:'Avez-vous des dettes?',desc:'Permet d\'activer les outils de remboursement et simulateurs.',type:'options',field:'debtLevel',options:[
+{v:'aucune',l:'Aucune dette',icon:'🎉',d:'Libre de dettes'},
+{v:'faible',l:'Dettes legeres',icon:'📋',d:'Facilement gerees'},
+{v:'moyenne',l:'Dettes moderees',icon:'⚠️',d:'A surveiller'},
+{v:'elevee',l:'Dettes importantes',icon:'🔴',d:'Priorite remboursement'}]},
+{id:'budgetExp',title:'Avez-vous deja fait un budget?',desc:'Adapte le niveau de detail et les explications.',type:'options',field:'budgetExperience',options:[
+{v:'jamais',l:'Jamais',icon:'🆕',d:'C\'est ma premiere fois'},
+{v:'essaye',l:'J\'ai essaye',icon:'🔄',d:'Sans vraiment continuer'},
+{v:'tableur',l:'Avec un tableur',icon:'📊',d:'Excel ou Google Sheets'},
+{v:'app',l:'Avec une app',icon:'📱',d:'Mint, YNAB, etc.'}]},
+{id:'transport',title:'Quel est votre moyen de transport principal?',desc:'Adapte les categories de depenses de transport.',type:'options',field:'transportMode',options:[
+{v:'auto',l:'Automobile',icon:'🚗',d:'Voiture personnelle'},
+{v:'transport',l:'Transport en commun',icon:'🚌',d:'Bus, metro'},
+{v:'velo',l:'Velo / marche',icon:'🚲',d:'Transport actif'},
+{v:'mixte',l:'Mixte',icon:'🔄',d:'Plusieurs modes'}]}
 ];
 
 var wizardData={};var wizardStep=0;
 
+function saveWizardProgress(){try{localStorage.setItem('budget-wizard-progress',JSON.stringify({data:wizardData,step:wizardStep}));}catch(e){}}
+function clearWizardProgress(){try{localStorage.removeItem('budget-wizard-progress');}catch(e){}}
+function loadWizardProgress(){try{var s=localStorage.getItem('budget-wizard-progress');if(s){var p=JSON.parse(s);return p;}return null;}catch(e){return null;}}
+
 function startProfileWizard(){
-wizardData={name:'',birthDate:'',province:'QC',situation:'celibataire',children:0,employment:'employe',housing:'locataire',mainGoal:'epargne',experience:'debutant',incomeRange:'50-75k'};
-wizardStep=0;
+var saved=loadWizardProgress();
+if(saved&&saved.data&&saved.data.name){wizardData=saved.data;wizardStep=saved.step||0;}
+else{wizardData={name:'',birthDate:'',province:'QC',situation:'celibataire',children:0,employment:'employe',housing:'locataire',mainGoal:'epargne',experience:'debutant',incomeRange:'50-75k',savingsHabit:'irregulier',debtLevel:'aucune',budgetExperience:'jamais',transportMode:'auto'};wizardStep=0;}
 document.getElementById('profile-select-view').style.display='none';
 document.getElementById('profile-wizard-view').style.display='';
 renderWizardStep();
@@ -178,27 +204,27 @@ var desc=document.createElement('div');desc.className='wizard-step-desc';desc.te
 /* Step content */
 if(step.type==='input'){
 var inp=document.createElement('input');inp.type='text';inp.placeholder=step.placeholder||'';inp.value=wizardData[step.field]||'';inp.style.cssText='width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:var(--radius-lg);font-size:16px;background:var(--bg-primary);color:var(--text-primary);outline:none';
-inp.id='wizard-input';inp.oninput=function(){wizardData[step.field]=this.value;};
+inp.id='wizard-input';inp.oninput=function(){wizardData[step.field]=this.value;saveWizardProgress();};
 inp.onkeydown=function(e){if(e.key==='Enter')wizardNext();};
 c.appendChild(inp);setTimeout(function(){inp.focus();},50);
 }
 else if(step.type==='date'){
 var inp2=document.createElement('input');inp2.type='date';inp2.value=wizardData[step.field]||'';inp2.max=new Date().toISOString().slice(0,10);inp2.min='1930-01-01';
 inp2.style.cssText='width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:var(--radius-lg);font-size:16px;background:var(--bg-primary);color:var(--text-primary);outline:none';
-inp2.onchange=function(){wizardData[step.field]=this.value;};
+inp2.onchange=function(){wizardData[step.field]=this.value;saveWizardProgress();};
 c.appendChild(inp2);
 }
 else if(step.type==='number'){
 var inp3=document.createElement('input');inp3.type='number';inp3.min='0';inp3.max='20';inp3.value=wizardData[step.field]||0;inp3.placeholder=step.placeholder||'0';
 inp3.style.cssText='width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:var(--radius-lg);font-size:16px;background:var(--bg-primary);color:var(--text-primary);outline:none';
-inp3.oninput=function(){wizardData[step.field]=parseInt(this.value)||0;};
+inp3.oninput=function(){wizardData[step.field]=parseInt(this.value)||0;saveWizardProgress();};
 inp3.onkeydown=function(e){if(e.key==='Enter')wizardNext();};
 c.appendChild(inp3);
 }
 else if(step.type==='select'){
 var sel=document.createElement('select');sel.style.cssText='width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:var(--radius-lg);font-size:16px;background:var(--bg-primary);color:var(--text-primary);outline:none';
 step.options.forEach(function(opt){var o=document.createElement('option');o.value=opt.v;o.textContent=opt.l;if(wizardData[step.field]===opt.v)o.selected=true;sel.appendChild(o);});
-sel.onchange=function(){wizardData[step.field]=this.value;};
+sel.onchange=function(){wizardData[step.field]=this.value;saveWizardProgress();};
 c.appendChild(sel);
 }
 else if(step.type==='options'){
@@ -209,15 +235,15 @@ var div=document.createElement('div');div.className='wizard-option'+(wizardData[
 if(opt.icon){var icon=document.createElement('span');icon.className='wizard-option-icon';icon.textContent=opt.icon;div.appendChild(icon);}
 var lbl=document.createElement('div');lbl.textContent=opt.l;div.appendChild(lbl);
 if(opt.d){var dd=document.createElement('div');dd.className='wizard-option-desc';dd.textContent=opt.d;div.appendChild(dd);}
-div.onclick=function(){wizardData[step.field]=opt.v;renderWizardStep();};
+div.onclick=function(){wizardData[step.field]=opt.v;saveWizardProgress();renderWizardStep();};
 grid.appendChild(div);});
 c.appendChild(grid);
 }
 
 /* Navigation */
 var nav=document.createElement('div');nav.className='wizard-nav';
-if(wizardStep>0){var backBtn=document.createElement('button');backBtn.className='btn btn-outline';backBtn.textContent='Precedent';backBtn.onclick=function(){wizardStep--;renderWizardStep();};nav.appendChild(backBtn);}
-else{var cancelBtn=document.createElement('button');cancelBtn.className='btn btn-outline';cancelBtn.textContent='Annuler';cancelBtn.onclick=function(){document.getElementById('profile-wizard-view').style.display='none';document.getElementById('profile-select-view').style.display='';};nav.appendChild(cancelBtn);}
+if(wizardStep>0){var backBtn=document.createElement('button');backBtn.className='btn btn-outline';backBtn.textContent='Precedent';backBtn.onclick=function(){wizardStep--;saveWizardProgress();renderWizardStep();};nav.appendChild(backBtn);}
+else{var cancelBtn=document.createElement('button');cancelBtn.className='btn btn-outline';cancelBtn.textContent='Annuler';cancelBtn.onclick=function(){clearWizardProgress();document.getElementById('profile-wizard-view').style.display='none';document.getElementById('profile-select-view').style.display='';};nav.appendChild(cancelBtn);}
 var nextBtn=document.createElement('button');nextBtn.className='btn btn-primary';nextBtn.textContent=wizardStep>=visible.length-1?'Terminer':'Suivant';nextBtn.onclick=wizardNext;
 nav.appendChild(nextBtn);c.appendChild(nav);
 }
@@ -232,10 +258,12 @@ if(inp){inp.style.borderColor='var(--danger)';inp.focus();}
 return;
 }
 wizardStep++;
+saveWizardProgress();
 renderWizardStep();
 }
 
 function finishWizard(){
+clearWizardProgress();
 var name=wizardData.name||'Mon budget';
 var id='p-'+Date.now()+'-'+Math.random().toString(36).substr(2,6);
 var p=getProfiles();
@@ -305,6 +333,7 @@ else if(p.housing==='proprietaire'){e0.name='Hypotheque';e0.desc='Paiement mensu
 ensureExpense('Taxes foncières','Scolaires et municipales','Logement','12');
 ensureExpense('Assurance habitation','Proprietaire','Logement','12');
 }
+else if(p.housing==='chez-parents'){e0.name='Contribution logement';e0.desc='Chez parents (optionnel)';changes.push('Logement: Chez parents');}
 else{e0.name='Entretien propriete';e0.desc='Propriete payee';changes.push('Logement: Propriete payee');}
 e0.amount=oldAmount; /* keep existing amount */
 }
