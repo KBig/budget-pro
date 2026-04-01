@@ -1,4 +1,4 @@
-var CACHE_NAME='budget-pro-v3';
+var CACHE_NAME='budget-pro-v4';
 var ASSETS=[
 './',
 './index.html',
@@ -21,15 +21,15 @@ self.clients.claim();
 
 self.addEventListener('fetch',function(e){
 e.respondWith(
-caches.match(e.request).then(function(cached){
-if(cached)return cached;
-return fetch(e.request).then(function(response){
+fetch(e.request).then(function(response){
 if(response&&response.status===200){
 var clone=response.clone();
 caches.open(CACHE_NAME).then(function(cache){cache.put(e.request,clone);});
 }
 return response;
 }).catch(function(){
+return caches.match(e.request).then(function(cached){
+if(cached)return cached;
 if(e.request.destination==='document')return caches.match('./index.html');
 });
 })
