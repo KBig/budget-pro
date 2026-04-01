@@ -128,7 +128,7 @@ var WIZARD_STEPS=[
 {v:'locataire',l:'Locataire',icon:'🏢',d:'Loyer mensuel'},
 {v:'proprietaire',l:'Proprietaire',icon:'🏠',d:'Avec hypotheque'},
 {v:'proprio-libre',l:'Proprio sans hypotheque',icon:'🏡',d:'Propriete payee'},
-{v:'chez-parents',l:'Chez mes parents',icon:'👨‍👩‍👦',d:'Gratuit ou contribution'}]},
+{v:'chez-parents',l:'Loge gratuitement',icon:'🏡',d:'Chez parents, famille, etc.'}]},
 {id:'goal',title:'Quel est votre objectif principal?',desc:'Met en avant les outils et conseils les plus pertinents pour vous.',type:'options',field:'mainGoal',options:[
 {v:'epargne',l:'Epargner plus',icon:'💰',d:'Augmenter mon epargne'},
 {v:'dette',l:'Rembourser mes dettes',icon:'📉',d:'Me liberer des dettes'},
@@ -333,7 +333,7 @@ else if(p.housing==='proprietaire'){e0.name='Hypotheque';e0.desc='Paiement mensu
 ensureExpense('Taxes foncières','Scolaires et municipales','Logement','12');
 ensureExpense('Assurance habitation','Proprietaire','Logement','12');
 }
-else if(p.housing==='chez-parents'){e0.name='Contribution logement';e0.desc='Chez parents (optionnel)';changes.push('Logement: Chez parents');}
+else if(p.housing==='chez-parents'){e0.name='Contribution logement';e0.desc='Optionnel';changes.push('Logement: Loge gratuitement');}
 else{e0.name='Entretien propriete';e0.desc='Propriete payee';changes.push('Logement: Propriete payee');}
 e0.amount=oldAmount; /* keep existing amount */
 }
