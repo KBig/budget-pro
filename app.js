@@ -72,7 +72,7 @@ var FED_BASIC=15705,QC_BASIC=17183;
 
 /* ── State ── */
 function defaultState(){return{
-profile:{name:'',birthDate:'',situation:'celibataire',children:0,province:'QC',employment:'employe',housing:'locataire',mainGoal:'epargne',experience:'debutant',incomeRange:'',setupComplete:false},
+profile:{name:'',birthDate:'',situation:'celibataire',children:0,province:'QC',employment:'employe',housing:'locataire',mainGoal:'epargne',goals:['epargne'],experience:'debutant',incomeRange:'',setupComplete:false},
 salaryNet:0,salaryFrequency:'12',province:'QC',extraIncomes:[],expenses:JSON.parse(JSON.stringify(DEF_EXP)),investments:JSON.parse(JSON.stringify(DEF_INV)),goals:[],emergencyFund:0,debts:[],netWorthAssets:[],netWorthLiabilities:[],netWorthHistory:[],transactions:[],debtStrategy:'avalanche',dashboardView:'mensuel',projYears:30,projInflation:2.0,projEvents:[],projBalances:{},theme:'light'};}
 var state=defaultState();
 var nextId=100,currentProfileId=null;
@@ -129,7 +129,7 @@ var WIZARD_STEPS=[
 {v:'proprietaire',l:'Proprietaire',icon:'🏠',d:'Avec hypotheque'},
 {v:'proprio-libre',l:'Proprio sans hypotheque',icon:'🏡',d:'Propriete payee'},
 {v:'chez-parents',l:'Loge gratuitement',icon:'🏡',d:'Chez parents, famille, etc.'}]},
-{id:'goal',title:'Quel est votre objectif principal?',desc:'Met en avant les outils et conseils les plus pertinents pour vous.',type:'options',field:'mainGoal',options:[
+{id:'goal',title:'Quels sont vos objectifs?',desc:'Selectionnez tout ce qui s\'applique. Adapte les outils et conseils affiches.',type:'multi',field:'goals',options:[
 {v:'epargne',l:'Epargner plus',icon:'💰',d:'Augmenter mon epargne'},
 {v:'dette',l:'Rembourser mes dettes',icon:'📉',d:'Me liberer des dettes'},
 {v:'maison',l:'Acheter une propriete',icon:'🏠',d:'Mise de fonds'},
@@ -175,9 +175,9 @@ function saveWizardProgress(){try{localStorage.setItem('budget-wizard-progress',
 function clearWizardProgress(){try{localStorage.removeItem('budget-wizard-progress');}catch(e){}}
 function loadWizardProgress(){try{var s=localStorage.getItem('budget-wizard-progress');if(s){var p=JSON.parse(s);return p;}return null;}catch(e){return null;}}
 
-var WIZARD_VERSION=2;
+var WIZARD_VERSION=3;
 function startProfileWizard(){
-var defaults={name:'',birthDate:'',province:'QC',situation:'celibataire',children:0,employment:'employe',housing:'locataire',mainGoal:'epargne',experience:'debutant',incomeRange:'50-75k',savingsHabit:'irregulier',debtLevel:'aucune',budgetExperience:'jamais',transportMode:'auto'};
+var defaults={name:'',birthDate:'',province:'QC',situation:'celibataire',children:0,employment:'employe',housing:'locataire',goals:['epargne'],experience:'debutant',incomeRange:'50-75k',savingsHabit:'irregulier',debtLevel:'aucune',budgetExperience:'jamais',transportMode:'auto'};
 var saved=loadWizardProgress();
 if(saved&&saved.data&&saved.data.name&&saved.version===WIZARD_VERSION){wizardData=Object.assign({},defaults,saved.data);wizardStep=saved.step||0;}
 else{clearWizardProgress();wizardData=defaults;wizardStep=0;}
@@ -241,6 +241,22 @@ div.onclick=function(){wizardData[step.field]=opt.v;saveWizardProgress();renderW
 grid.appendChild(div);});
 c.appendChild(grid);
 }
+else if(step.type==='multi'){
+var arr=wizardData[step.field]||[];
+var grid2=document.createElement('div');grid2.className='wizard-options';
+if(step.options.length>4)grid2.style.gridTemplateColumns='1fr 1fr 1fr';
+step.options.forEach(function(opt){
+var isSelected=arr.indexOf(opt.v)!==-1;
+var div=document.createElement('div');div.className='wizard-option'+(isSelected?' selected':'');
+if(opt.icon){var icon=document.createElement('span');icon.className='wizard-option-icon';icon.textContent=opt.icon;div.appendChild(icon);}
+var lbl=document.createElement('div');lbl.textContent=opt.l;div.appendChild(lbl);
+if(opt.d){var dd=document.createElement('div');dd.className='wizard-option-desc';dd.textContent=opt.d;div.appendChild(dd);}
+div.onclick=function(){var a=wizardData[step.field]||[];var idx=a.indexOf(opt.v);if(idx===-1){a.push(opt.v);}else{a.splice(idx,1);}wizardData[step.field]=a;saveWizardProgress();renderWizardStep();};
+grid2.appendChild(div);});
+c.appendChild(grid2);
+var hint=document.createElement('div');hint.textContent='Plusieurs choix possibles';hint.style.cssText='text-align:center;font-size:12px;color:rgba(255,255,255,.3);margin-top:10px';
+c.appendChild(hint);
+}
 
 /* Navigation */
 var nav=document.createElement('div');nav.className='wizard-nav';
@@ -273,7 +289,8 @@ p.push({id:id,name:name,lastModified:new Date().toISOString(),age:getAgeFromBirt
 saveProfiles(p);
 state=defaultState();
 /* Apply wizard data to state */
-state.profile={name:wizardData.name,birthDate:wizardData.birthDate,situation:wizardData.situation,children:wizardData.children||0,province:wizardData.province,employment:wizardData.employment,housing:wizardData.housing,mainGoal:wizardData.mainGoal,experience:wizardData.experience,incomeRange:wizardData.incomeRange,setupComplete:true};
+var goalsArr=wizardData.goals||['epargne'];
+state.profile={name:wizardData.name,birthDate:wizardData.birthDate,situation:wizardData.situation,children:wizardData.children||0,province:wizardData.province,employment:wizardData.employment,housing:wizardData.housing,mainGoal:goalsArr[0]||'epargne',goals:goalsArr,experience:wizardData.experience,incomeRange:wizardData.incomeRange,setupComplete:true};
 state.province=wizardData.province;
 /* Apply adaptations based on profile */
 applyProfileAdaptations();
@@ -418,20 +435,33 @@ else if(reer&&age>=55)reer.desc='Planifiez la conversion FERR a 71 ans';
 }
 
 /* ── GOALS (first setup only — never overwrite existing goals on edit) ── */
+var pGoals=p.goals||[p.mainGoal||'epargne'];
+function hasGoal(g){return pGoals.indexOf(g)!==-1;}
 if(!isUpdate&&state.goals.length===0){
-if(p.mainGoal==='maison'&&p.housing==='locataire'){
+if(hasGoal('maison')&&p.housing==='locataire'){
 state.goals.push({id:gid('g'),type:'maison',name:'Mise de fonds',target:80000,current:0,contrib:500,freq:'12',rate:4,deadline:'',priority:'haute'});
 changes.push('Objectif cree: Mise de fonds');
-}else if(p.mainGoal==='retraite'){
+}
+if(hasGoal('retraite')){
 var retTarget=age?(Math.max(65-age,5))*12000:500000;
 state.goals.push({id:gid('g'),type:'retraite',name:'Retraite',target:retTarget,current:0,contrib:400,freq:'12',rate:6,deadline:'',priority:'haute'});
 changes.push('Objectif cree: Retraite');
-}else if(p.mainGoal==='fire'){
+}
+if(hasGoal('fire')){
 state.goals.push({id:gid('g'),type:'autre',name:'Independance financiere (FIRE)',target:750000,current:0,contrib:1000,freq:'12',rate:7,deadline:'',priority:'haute'});
 changes.push('Objectif cree: FIRE');
-}else if(p.mainGoal==='epargne'){
+}
+if(hasGoal('epargne')){
 state.goals.push({id:gid('g'),type:'urgence',name:'Fonds d\'urgence 6 mois',target:15000,current:0,contrib:300,freq:'12',rate:0,deadline:'',priority:'haute'});
 changes.push('Objectif cree: Fonds urgence');
+}
+if(hasGoal('dette')){
+state.goals.push({id:gid('g'),type:'autre',name:'Eliminer mes dettes',target:0,current:0,contrib:500,freq:'12',rate:0,deadline:'',priority:'haute'});
+changes.push('Objectif cree: Eliminer dettes');
+}
+if(hasGoal('investir')){
+state.goals.push({id:gid('g'),type:'autre',name:'Portefeuille d\'investissement',target:100000,current:0,contrib:500,freq:'12',rate:7,deadline:'',priority:'moyenne'});
+changes.push('Objectif cree: Investissement');
 }
 }
 
@@ -483,7 +513,7 @@ if(changed)saveProfiles(profiles);
 function openProfileEditor(){
 var p=state.profile||{};
 var oldProfile=JSON.parse(JSON.stringify(p)); /* snapshot of current profile */
-wizardData={name:p.name||'',birthDate:p.birthDate||'',province:p.province||'QC',situation:p.situation||'celibataire',children:p.children||0,employment:p.employment||'employe',housing:p.housing||'locataire',mainGoal:p.mainGoal||'epargne',experience:p.experience||'debutant',incomeRange:p.incomeRange||''};
+wizardData={name:p.name||'',birthDate:p.birthDate||'',province:p.province||'QC',situation:p.situation||'celibataire',children:p.children||0,employment:p.employment||'employe',housing:p.housing||'locataire',goals:p.goals||[p.mainGoal||'epargne'],experience:p.experience||'debutant',incomeRange:p.incomeRange||''};
 wizardStep=0;
 document.getElementById('profile-select-view').style.display='none';
 document.getElementById('profile-wizard-view').style.display='';
@@ -491,7 +521,8 @@ showProfileScreen();
 var origFinish=finishWizard;
 finishWizard=function(){
 pushUndo();
-var newProfile={name:wizardData.name,birthDate:wizardData.birthDate,situation:wizardData.situation,children:wizardData.children||0,province:wizardData.province,employment:wizardData.employment,housing:wizardData.housing,mainGoal:wizardData.mainGoal,experience:wizardData.experience,incomeRange:wizardData.incomeRange,setupComplete:true};
+var goalsArr2=wizardData.goals||['epargne'];
+var newProfile={name:wizardData.name,birthDate:wizardData.birthDate,situation:wizardData.situation,children:wizardData.children||0,province:wizardData.province,employment:wizardData.employment,housing:wizardData.housing,mainGoal:goalsArr2[0]||'epargne',goals:goalsArr2,experience:wizardData.experience,incomeRange:wizardData.incomeRange,setupComplete:true};
 state.profile=newProfile;
 /* Apply only the CHANGES between old and new profile */
 var changes=applyProfileToState(newProfile,oldProfile);
@@ -552,8 +583,9 @@ sp.appendChild(editLink);
 var dashTitle=document.getElementById('dashboard-title');if(dashTitle)dashTitle.textContent='Bonjour'+((prof.name)?' '+prof.name.split(' ')[0]:'')+'!';
 var dashDesc=document.getElementById('dashboard-desc');
 if(dashDesc&&prof.setupComplete){
-var goalLabels={epargne:'augmenter votre epargne',dette:'rembourser vos dettes',maison:'acheter une propriete',retraite:'planifier votre retraite',fire:'atteindre l\'independance financiere',investir:'optimiser vos investissements'};
-dashDesc.textContent='Objectif : '+(goalLabels[prof.mainGoal]||'gerer votre budget')+' | '+(age?age+' ans':'')+(prof.province?' | '+prof.province:'');
+var goalLabels={epargne:'epargne',dette:'remboursement dettes',maison:'achat propriete',retraite:'retraite',fire:'independance financiere',investir:'investissement'};
+var gList=(prof.goals||[prof.mainGoal||'epargne']).map(function(g){return goalLabels[g]||g;}).join(', ');
+dashDesc.textContent='Objectifs : '+(gList||'gerer votre budget')+' | '+(age?age+' ans':'')+(prof.province?' | '+prof.province:'');
 }
 }
 function migrateOldData(){var old=localStorage.getItem('budget-v2');if(!old)return null;try{var id='p-migrated-'+Date.now();var p=getProfiles();p.push({id:id,name:'Mon budget',lastModified:new Date().toISOString()});saveProfiles(p);localStorage.setItem('budget-data-'+id,old);localStorage.removeItem('budget-v2');return id;}catch(e){return null;}}
@@ -1087,19 +1119,20 @@ var prof=state.profile||{};
 if(prof.setupComplete){
 var age=getProfileAge();
 /* Conseils selon l'objectif */
-if(prof.mainGoal==='maison'&&prof.housing==='locataire'){
+var pG2=prof.goals||[prof.mainGoal||'epargne'];function hasG(g){return pG2.indexOf(g)!==-1;}
+if(hasG('maison')&&prof.housing==='locataire'){
 var celiapp=0;state.investments.forEach(function(inv){if(inv.name==='CELIAPP')celiapp=catAnnual(inv);});
 if(celiapp===0)addReport(c,'info','i','CELIAPP pour votre mise de fonds','Vous visez l\'achat d\'une propriete. Le CELIAPP offre une deduction fiscale ET des retraits non imposes pour l\'achat. Max 8 000$/an, 40 000$ a vie.');
 else addReport(c,'positive','+','CELIAPP actif','Excellente decision pour votre objectif immobilier.');
 }
-if(prof.mainGoal==='dette'&&totalDebtBal()>0){
+if(hasG('dette')&&totalDebtBal()>0){
 addReport(c,'info','i','Focus dette',totalDebtBal()>0?'Consultez la section Dettes pour voir l\'analyse Rembourser vs Investir. Priorisez les dettes a taux eleve.':'Aucune dette enregistree — ajoutez vos dettes dans la section dediee.');
 }
-if(prof.mainGoal==='retraite'&&age){
+if(hasG('retraite')&&age){
 var yrsToRetire=65-age;
 if(yrsToRetire>0){addReport(c,'info','i','Retraite dans '+yrsToRetire+' ans','Consultez le simulateur Retraite pour verifier si vous etes en bonne voie. A '+age+' ans, chaque annee d\'epargne compte enormement grace a l\'interet compose.');}
 }
-if(prof.mainGoal==='fire'){
+if(hasG('fire')){
 var fireNum=ea>0?ea/0.04:0;var fireP=fireNum>0?pct(totalNWA()-totalNWL(),fireNum):0;
 addReport(c,'info','i','Chemin FIRE: '+fmtP(Math.min(fireP,100)),'Cible: '+fmtS(fireNum)+' (25x depenses annuelles). Maximisez votre taux d\'epargne — c\'est le facteur #1.');
 }
