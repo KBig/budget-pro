@@ -835,9 +835,11 @@ function buildParametresHTML(){
 return '<div class="section" id="section-parametres"><h2 class="section-title">Parametres</h2><p class="section-desc">Configuration</p><div class="card">'+
 '<div class="settings-row"><div class="settings-label"><h4>Theme</h4><p>Clair ou sombre</p></div><button class="btn btn-outline" onclick="toggleTheme()" id="theme-btn">Theme sombre</button></div>'+
 '<div class="settings-row"><div class="settings-label"><h4>Imprimer</h4><p>PDF</p></div><button class="btn btn-outline" onclick="window.print()">Imprimer</button></div>'+
-'<div class="settings-row"><div class="settings-label"><h4>Exporter JSON</h4><p>Sauvegarde complete</p></div><button class="btn btn-success" onclick="exportData()">Exporter</button></div>'+
+'<div class="settings-row"><div class="settings-label"><h4>Transferer vers un autre appareil</h4><p>Generez un QR code pour transferer votre profil vers votre telephone ou un autre ordinateur</p></div><button class="btn btn-primary" onclick="showTransferQR()">QR Code</button></div>'+
+'<div class="settings-row"><div class="settings-label"><h4>Recevoir un transfert</h4><p>Collez le code de transfert recu d\'un autre appareil</p></div><button class="btn btn-outline" onclick="showReceiveTransfer()">Recevoir</button></div>'+
+'<div class="settings-row"><div class="settings-label"><h4>Exporter JSON</h4><p>Sauvegarde complete en fichier</p></div><button class="btn btn-success" onclick="exportData()">Exporter</button></div>'+
 '<div class="settings-row"><div class="settings-label"><h4>Exporter CSV</h4><p>Tableur</p></div><button class="btn btn-success" onclick="exportCSV()">CSV</button></div>'+
-'<div class="settings-row"><div class="settings-label"><h4>Importer</h4><p>Restaurer JSON</p></div><div><input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"><button class="btn btn-primary" onclick="document.getElementById(\'import-file\').click()">Importer</button></div></div>'+
+'<div class="settings-row"><div class="settings-label"><h4>Importer</h4><p>Restaurer depuis un fichier JSON</p></div><div><input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"><button class="btn btn-primary" onclick="document.getElementById(\'import-file\').click()">Importer</button></div></div>'+
 '<div class="settings-row"><div class="settings-label"><h4>Reinitialiser</h4><p>Tout effacer</p></div><button class="btn btn-danger" onclick="resetAll()">Reset</button></div>'+
 '</div><div class="card"><div class="card-title">Raccourcis</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;font-size:13px"><div><span class="kbd">Ctrl+K</span> Rechercher</div><div><span class="kbd">Ctrl+Z</span> Annuler</div><div><span class="kbd">Ctrl+Y</span> Retablir</div><div><span class="kbd">Ctrl+S</span> Sauvegarder</div><div><span class="kbd">Ctrl+E</span> Exporter</div><div><span class="kbd">1-9</span> Naviguer</div></div></div></div>';
 }
@@ -1862,6 +1864,137 @@ function toggleTheme(){state.theme=state.theme==='dark'?'light':'dark';applyThem
 function applyTheme(){document.documentElement.setAttribute('data-theme',state.theme);var b=document.getElementById('theme-btn');if(b)b.textContent=state.theme==='dark'?'Theme clair':'Theme sombre';}
 
 function exportData(){var p=getProfiles(),pn='budget';p.forEach(function(pr){if(pr.id===currentProfileId)pn=pr.name.replace(/[^a-zA-Z0-9\u00C0-\u024F]/g,'-');});var b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download=pn+'-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(u);}
+
+/* ═══════════════════════════════════════════════════
+   TRANSFER VIA QR CODE / CODE
+   ═══════════════════════════════════════════════════ */
+
+/* Compress state to a short transfer code */
+function generateTransferCode(){
+var data=JSON.stringify(state);
+/* Base64 encode */
+var encoded=btoa(unescape(encodeURIComponent(data)));
+return encoded;
+}
+
+function applyTransferCode(code){
+try{
+var decoded=decodeURIComponent(escape(atob(code)));
+var data=JSON.parse(decoded);
+if(!data.expenses||!data.investments){popupAlert('Erreur','Code de transfert invalide.');return false;}
+pushUndo();
+state=Object.assign(defaultState(),data);
+applyTheme();
+save();renderAll();updateProfileDisplay();
+return true;
+}catch(e){popupAlert('Erreur','Code de transfert invalide ou corrompu.');return false;}
+}
+
+/* QR Code generator (pure JS, no library) */
+function generateQRCode(text,size){
+/* We use a Google Charts API for simplicity — generates a QR image URL */
+return 'https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data='+encodeURIComponent(text);
+}
+
+function showTransferQR(){
+if(!currentProfileId){popupAlert('Erreur','Aucun profil actif.');return;}
+var code=generateTransferCode();
+
+/* If data is too big for QR (>2000 chars URL), use code-only method */
+var baseUrl=window.location.href.split('?')[0].split('#')[0];
+var transferUrl=baseUrl+'?transfer='+encodeURIComponent(code);
+var tooBigForQR=transferUrl.length>2500;
+
+var ov=document.getElementById('popup-overlay');
+document.getElementById('popup-title').textContent='Transferer vers un autre appareil';
+var msg=document.getElementById('popup-message');
+msg.textContent='';
+
+if(!tooBigForQR){
+/* Show QR code */
+var desc=document.createElement('p');desc.style.cssText='font-size:13px;color:var(--text-secondary);margin-bottom:16px';
+desc.textContent='Scannez ce QR code avec votre autre appareil pour transferer votre profil. Ou copiez le lien ci-dessous.';
+msg.appendChild(desc);
+
+var qrImg=document.createElement('img');
+qrImg.src=generateQRCode(transferUrl,250);
+qrImg.alt='QR Code de transfert';
+qrImg.style.cssText='display:block;margin:0 auto 16px;border-radius:8px;background:white;padding:8px';
+msg.appendChild(qrImg);
+
+var linkBox=document.createElement('input');linkBox.type='text';linkBox.value=transferUrl;linkBox.readOnly=true;
+linkBox.style.cssText='width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:11px;background:var(--bg-primary);color:var(--text-primary);margin-bottom:8px';
+linkBox.onclick=function(){this.select();};
+msg.appendChild(linkBox);
+
+var copyBtn=document.createElement('button');copyBtn.className='btn btn-sm btn-outline';copyBtn.textContent='Copier le lien';copyBtn.style.cssText='width:100%;justify-content:center';
+copyBtn.onclick=function(){navigator.clipboard.writeText(transferUrl).then(function(){copyBtn.textContent='Copie!';setTimeout(function(){copyBtn.textContent='Copier le lien';},2000);});};
+msg.appendChild(copyBtn);
+}else{
+/* Data too large for QR — use manual code copy */
+var desc2=document.createElement('p');desc2.style.cssText='font-size:13px;color:var(--text-secondary);margin-bottom:12px';
+desc2.textContent='Votre profil est trop volumineux pour un QR code. Copiez le code ci-dessous et collez-le sur votre autre appareil via "Recevoir un transfert".';
+msg.appendChild(desc2);
+
+var codeBox=document.createElement('textarea');codeBox.value=code;codeBox.readOnly=true;
+codeBox.style.cssText='width:100%;height:80px;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:10px;font-family:monospace;background:var(--bg-primary);color:var(--text-primary);resize:none;margin-bottom:8px';
+codeBox.onclick=function(){this.select();};
+msg.appendChild(codeBox);
+
+var copyBtn2=document.createElement('button');copyBtn2.className='btn btn-sm btn-primary';copyBtn2.textContent='Copier le code';copyBtn2.style.cssText='width:100%;justify-content:center';
+copyBtn2.onclick=function(){navigator.clipboard.writeText(code).then(function(){copyBtn2.textContent='Copie!';setTimeout(function(){copyBtn2.textContent='Copier le code';},2000);});};
+msg.appendChild(copyBtn2);
+}
+
+var acts=document.getElementById('popup-actions');acts.textContent='';
+var closeBtn=document.createElement('button');closeBtn.className='btn btn-outline';closeBtn.textContent='Fermer';closeBtn.onclick=function(){ov.classList.remove('active');};
+acts.appendChild(closeBtn);
+ov.classList.add('active');
+}
+
+function showReceiveTransfer(){
+var ov=document.getElementById('popup-overlay');
+document.getElementById('popup-title').textContent='Recevoir un transfert';
+var msg=document.getElementById('popup-message');msg.textContent='';
+
+var desc=document.createElement('p');desc.style.cssText='font-size:13px;color:var(--text-secondary);margin-bottom:12px';
+desc.textContent='Collez le code de transfert que vous avez copie depuis votre autre appareil :';
+msg.appendChild(desc);
+
+var codeInput=document.createElement('textarea');codeInput.id='receive-transfer-code';
+codeInput.placeholder='Collez le code ici...';
+codeInput.style.cssText='width:100%;height:80px;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:monospace;background:var(--bg-primary);color:var(--text-primary);resize:none';
+msg.appendChild(codeInput);
+
+var acts=document.getElementById('popup-actions');acts.textContent='';
+var cancelBtn=document.createElement('button');cancelBtn.className='btn btn-outline';cancelBtn.textContent='Annuler';cancelBtn.onclick=function(){ov.classList.remove('active');};acts.appendChild(cancelBtn);
+var applyBtn=document.createElement('button');applyBtn.className='btn btn-primary';applyBtn.textContent='Importer le profil';applyBtn.onclick=function(){
+var code=document.getElementById('receive-transfer-code').value.trim();
+if(!code){return;}
+ov.classList.remove('active');
+if(applyTransferCode(code)){
+popupAlert('Transfert reussi','Votre profil a ete importe avec succes!');
+}
+};acts.appendChild(applyBtn);
+ov.classList.add('active');
+setTimeout(function(){codeInput.focus();},100);
+}
+
+/* Check URL for transfer parameter on load */
+function checkTransferURL(){
+var params=new URLSearchParams(window.location.search);
+var transfer=params.get('transfer');
+if(transfer){
+/* Remove the parameter from URL */
+window.history.replaceState({},'',window.location.pathname);
+/* Apply the transfer */
+setTimeout(function(){
+popupConfirm('Transfert de profil','Un profil a ete partage avec vous. Voulez-vous l\'importer?',function(){
+applyTransferCode(decodeURIComponent(transfer));
+});
+},500);
+}
+}
 function exportCSV(){var rows=[['Categorie','Groupe','Annuel','Mensuel','Type']];state.expenses.forEach(function(e){var a=catAnnual(e);if(a>0)rows.push([e.name,e.group,a.toFixed(2),(a/12).toFixed(2),'Depense']);});state.investments.forEach(function(inv){var a=catAnnual(inv);if(a>0)rows.push([inv.name,'Placement',a.toFixed(2),(a/12).toFixed(2),'Placement']);});var csv=rows.map(function(r){return r.map(function(c){return'"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');var b=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='budget-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(u);}
 function importData(ev){var f=ev.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){try{var d=JSON.parse(e.target.result);if(!d.expenses||!d.investments){popupAlert('Erreur','Fichier invalide.');return;}pushUndo();state=Object.assign(defaultState(),d);applyTheme();renderAll();popupAlert('Succes','Importe.');}catch(err){popupAlert('Erreur','JSON invalide.');}};r.readAsText(f);ev.target.value='';}
 function resetAll(){popupConfirm('Reinitialiser','Tout effacer?',function(){pushUndo();var t=state.theme;state=defaultState();state.theme=t;save();renderAll();});}
@@ -1910,6 +2043,8 @@ var profiles=getProfiles();
 if(savedId&&profiles.some(function(p){return p.id===savedId;}))selectProfile(savedId);
 else if(profiles.length===1)selectProfile(profiles[0].id);
 else showProfileScreen();
+/* Check for transfer via URL */
+checkTransferURL();
 /* Register service worker for PWA/offline */
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(){});}
 })();
