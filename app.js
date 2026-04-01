@@ -171,14 +171,16 @@ var WIZARD_STEPS=[
 
 var wizardData={};var wizardStep=0;
 
-function saveWizardProgress(){try{localStorage.setItem('budget-wizard-progress',JSON.stringify({data:wizardData,step:wizardStep}));}catch(e){}}
+function saveWizardProgress(){try{localStorage.setItem('budget-wizard-progress',JSON.stringify({data:wizardData,step:wizardStep,version:WIZARD_VERSION}));}catch(e){}}
 function clearWizardProgress(){try{localStorage.removeItem('budget-wizard-progress');}catch(e){}}
 function loadWizardProgress(){try{var s=localStorage.getItem('budget-wizard-progress');if(s){var p=JSON.parse(s);return p;}return null;}catch(e){return null;}}
 
+var WIZARD_VERSION=2;
 function startProfileWizard(){
+var defaults={name:'',birthDate:'',province:'QC',situation:'celibataire',children:0,employment:'employe',housing:'locataire',mainGoal:'epargne',experience:'debutant',incomeRange:'50-75k',savingsHabit:'irregulier',debtLevel:'aucune',budgetExperience:'jamais',transportMode:'auto'};
 var saved=loadWizardProgress();
-if(saved&&saved.data&&saved.data.name){wizardData=saved.data;wizardStep=saved.step||0;}
-else{wizardData={name:'',birthDate:'',province:'QC',situation:'celibataire',children:0,employment:'employe',housing:'locataire',mainGoal:'epargne',experience:'debutant',incomeRange:'50-75k',savingsHabit:'irregulier',debtLevel:'aucune',budgetExperience:'jamais',transportMode:'auto'};wizardStep=0;}
+if(saved&&saved.data&&saved.data.name&&saved.version===WIZARD_VERSION){wizardData=Object.assign({},defaults,saved.data);wizardStep=saved.step||0;}
+else{clearWizardProgress();wizardData=defaults;wizardStep=0;}
 document.getElementById('profile-select-view').style.display='none';
 document.getElementById('profile-wizard-view').style.display='';
 renderWizardStep();
