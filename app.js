@@ -1260,6 +1260,22 @@ function confirmGoal(){pushUndo();var type=document.getElementById('goal-modal-t
 /* Net Worth */
 function renderNetWorth(){var al=document.getElementById('nw-assets-list'),ll=document.getElementById('nw-liabilities-list');if(!al)return;al.textContent='';ll.textContent='';
 state.netWorthAssets=state.netWorthAssets||[];state.netWorthLiabilities=state.netWorthLiabilities||[];
+/* Auto items from other sections */
+function renderAutoItem(container,name,cat,value,colorCls){
+var d=document.createElement('div');d.className='nw-item';d.style.opacity='0.85';
+var left=document.createElement('div');var n=document.createElement('div');n.className='nw-item-name';n.textContent=name;left.appendChild(n);
+var c2=document.createElement('div');c2.style.cssText='font-size:11px;color:var(--text-muted)';c2.textContent=cat+' (auto)';left.appendChild(c2);d.appendChild(left);
+var right=document.createElement('div');right.style.cssText='display:flex;align-items:center;gap:8px';
+var val=document.createElement('span');val.style.cssText='font-weight:700;font-size:14px;color:'+(colorCls||'var(--text-primary)');val.textContent=fmt(value);right.appendChild(val);
+d.appendChild(right);container.appendChild(d);}
+/* Auto assets: placements with current balance from goals */
+var autoAssets=0,autoLiabs=0;
+state.goals.forEach(function(g){if((g.current||0)>0){renderAutoItem(al,g.name,'Objectifs',g.current,'var(--accent)');autoAssets+=g.current;}});
+state.investments.forEach(function(inv){var bal=state.projBalances&&state.projBalances[inv.id]?state.projBalances[inv.id]:0;if(!bal&&(inv.amount||0)>0)bal=catAnnual(inv);if(bal>0){renderAutoItem(al,inv.name,'Placements',bal,'var(--accent)');autoAssets+=bal;}});
+if(state.emergencyFund>0){renderAutoItem(al,'Fonds d\'urgence','Epargne',state.emergencyFund,'var(--accent)');autoAssets+=state.emergencyFund;}
+/* Auto liabilities: debts */
+(state.debts||[]).forEach(function(d){if((d.balance||0)>0){renderAutoItem(ll,d.name,'Dettes',d.balance,'var(--danger)');autoLiabs+=d.balance;}});
+/* Manual items */
 function renderList(items,container,type){items.forEach(function(item,i){var d=document.createElement('div');d.className='nw-item';
 var left=document.createElement('div');var n=document.createElement('div');n.className='nw-item-name';n.textContent=item.name;left.appendChild(n);
 if(item.category){var cat=document.createElement('div');cat.style.cssText='font-size:11px;color:var(--text-muted)';cat.textContent=item.category;left.appendChild(cat);}d.appendChild(left);
@@ -1269,7 +1285,7 @@ inp.oninput=function(){item.value=parseFloat(this.value)||0;debouncedRecalc();};
 var del=document.createElement('button');del.className='remove-btn';del.textContent='\u2715';(function(idx,tp){del.onclick=function(){popupConfirm('Supprimer','Supprimer?',function(){pushUndo();(tp==='asset'?state.netWorthAssets:state.netWorthLiabilities).splice(idx,1);renderAll();});};})(i,type);right.appendChild(del);
 d.appendChild(right);container.appendChild(d);});}
 renderList(state.netWorthAssets,al,'asset');renderList(state.netWorthLiabilities,ll,'liability');
-var ta=totalNWA(),tl=totalNWL(),nw=ta-tl;
+var ta=totalNWA()+autoAssets,tl=totalNWL()+autoLiabs,nw=ta-tl;
 document.getElementById('nw-total-assets').textContent=fmt(ta);document.getElementById('nw-total-liabilities').textContent=fmt(tl);
 document.getElementById('nw-net-worth').textContent=fmt(nw);document.getElementById('nw-net-worth').className='stat-value '+(nw>=0?'positive':'negative');
 document.getElementById('nw-ratio').textContent=tl>0?(ta/tl).toFixed(2)+'x':'--';
