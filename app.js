@@ -1008,6 +1008,12 @@ var item=list.splice(fromIdx,1)[0];list.splice(toIdx>fromIdx?toIdx-1:toIdx,0,ite
 var nd=document.createElement('div');nd.className='category-name';nd.appendChild(document.createTextNode(cat.name));
 if(cat.desc){var sm=document.createElement('small');sm.textContent=cat.desc;nd.appendChild(sm);}
 if(type==='investment'){var info=document.createElement('div');info.className='placement-info';
+var balTag=document.createElement('span');balTag.className='info-tag';balTag.style.cssText='display:inline-flex;align-items:center;gap:4px';
+var balLbl=document.createElement('span');balLbl.textContent='Solde: ';balTag.appendChild(balLbl);
+var balInp=document.createElement('input');balInp.type='number';balInp.value=cat.currentBalance||'';balInp.placeholder='0';balInp.step='100';balInp.min='0';
+balInp.style.cssText='width:90px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-secondary);color:var(--text-primary);font-size:11px;font-weight:700;text-align:right';
+balInp.dataset.idx=i;balInp.oninput=function(){state.investments[parseInt(this.dataset.idx)].currentBalance=parseFloat(this.value)||0;debouncedRecalc();};
+balTag.appendChild(balInp);balTag.appendChild(document.createTextNode(' $'));info.appendChild(balTag);
 if(cat.limit>0){var t=document.createElement('span');t.className='info-tag';t.textContent='Plafond: '+fmt(cat.limit)+'/an';info.appendChild(t);}
 if(cat.lifetimeLimit>0){var t2=document.createElement('span');t2.className='info-tag';t2.textContent='Max vie: '+fmtS(cat.lifetimeLimit);info.appendChild(t2);}
 if(cat.rate){var t3=document.createElement('span');t3.className='info-tag';t3.textContent='Rend: '+cat.rate+'%';info.appendChild(t3);}
@@ -1271,7 +1277,7 @@ d.appendChild(right);container.appendChild(d);}
 /* Auto assets: placements with current balance from goals */
 var autoAssets=0,autoLiabs=0;
 state.goals.forEach(function(g){if((g.current||0)>0){renderAutoItem(al,g.name,'Objectifs',g.current,'var(--accent)');autoAssets+=g.current;}});
-state.investments.forEach(function(inv){var bal=state.projBalances&&state.projBalances[inv.id]?state.projBalances[inv.id]:0;if(!bal&&(inv.amount||0)>0)bal=catAnnual(inv);if(bal>0){renderAutoItem(al,inv.name,'Placements',bal,'var(--accent)');autoAssets+=bal;}});
+state.investments.forEach(function(inv){var bal=inv.currentBalance||0;if(bal>0){renderAutoItem(al,inv.name,'Placements',bal,'var(--accent)');autoAssets+=bal;}});
 if(state.emergencyFund>0){renderAutoItem(al,'Fonds d\'urgence','Epargne',state.emergencyFund,'var(--accent)');autoAssets+=state.emergencyFund;}
 /* Auto liabilities: debts */
 (state.debts||[]).forEach(function(d){if((d.balance||0)>0){renderAutoItem(ll,d.name,'Dettes',d.balance,'var(--danger)');autoLiabs+=d.balance;}});
@@ -1711,7 +1717,7 @@ if(!allInv.length){configEl.textContent='Ajoutez des placements.';return;}
 allInv.forEach(function(inv,idx){
 var annual=catAnnual(inv);
 var balKey='bal_'+inv.id;
-var bal=state.projBalances[balKey]||0;
+var bal=state.projBalances[balKey]||(inv.currentBalance||0);
 
 var row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:140px 1fr 1fr 1fr;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px';
 var nameEl=document.createElement('div');nameEl.style.fontWeight='700';nameEl.textContent=inv.name;row.appendChild(nameEl);
@@ -1753,7 +1759,7 @@ var rt=(item.rate||0)/100;
 var cap=item.limit||0,lifeCap=item.lifetimeLimit||0,maxYrs=item.maxYears||0;
 var isREEE=item.name==='REEE';
 var balKey='bal_'+item.id;
-var startBal=state.projBalances[balKey]||0;
+var startBal=state.projBalances[balKey]||(inv.currentBalance||0);
 
 /* Build a map of year → contribution override from events */
 var overrides={};
