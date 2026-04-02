@@ -1998,13 +1998,29 @@ function exportData(){var p=getProfiles(),pn='budget';p.forEach(function(pr){if(
    ═══════════════════════════════════════════════════ */
 
 /* Compress state: strip defaults to minimize size */
+/* Safe base64 that handles Unicode */
+function toBase64(str){
+try{return btoa(unescape(encodeURIComponent(str)));}
+catch(e){
+/* Fallback for any encoding issue */
+var bytes=new TextEncoder().encode(str);
+var binary='';for(var i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
+return btoa(binary);
+}}
+function fromBase64(b64){
+try{return decodeURIComponent(escape(atob(b64)));}
+catch(e){
+var binary=atob(b64);
+var bytes=new Uint8Array(binary.length);for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+return new TextDecoder().decode(bytes);
+}}
+
 function generateTransferCode(){
 var s=JSON.parse(JSON.stringify(state));
-/* Remove expenses/investments that are unchanged from defaults */
-s.expenses=s.expenses.filter(function(e){return(e.amount||0)>0||e.currentBalance>0;});
-s.investments=s.investments.filter(function(inv){return(inv.amount||0)>0||inv.currentBalance>0;});
-/* Remove empty arrays */
-if(!s.goals.length)delete s.goals;
+/* Strip unchanged defaults to reduce size */
+s.expenses=(s.expenses||[]).filter(function(e){return(e.amount||0)>0||(e.currentBalance||0)>0;});
+s.investments=(s.investments||[]).filter(function(inv){return(inv.amount||0)>0||(inv.currentBalance||0)>0;});
+if(!s.goals||!s.goals.length)delete s.goals;
 if(!s.debts||!s.debts.length)delete s.debts;
 if(!s.netWorthAssets||!s.netWorthAssets.length)delete s.netWorthAssets;
 if(!s.netWorthLiabilities||!s.netWorthLiabilities.length)delete s.netWorthLiabilities;
@@ -2012,29 +2028,37 @@ if(!s.transactions||!s.transactions.length)delete s.transactions;
 if(!s.netWorthHistory||!s.netWorthHistory.length)delete s.netWorthHistory;
 if(!s.projEvents||!s.projEvents.length)delete s.projEvents;
 delete s.projBalances;delete s.theme;
-var data=JSON.stringify(s);
-/* LZ compression: simple URI-safe encoding */
-var encoded=btoa(unescape(encodeURIComponent(data)));
-return encoded;
+return toBase64(JSON.stringify(s));
 }
 
 function applyTransferCode(code){
 try{
-var decoded=decodeURIComponent(escape(atob(code)));
+/* Clean up code: trim whitespace, remove line breaks */
+code=code.trim().replace(/\s+/g,'');
+var decoded=fromBase64(code);
 var data=JSON.parse(decoded);
-if(!data.profile&&!data.salaryNet&&!data.expenses){popupAlert('Erreur','Code de transfert invalide.');return false;}
+/* Accept any valid object with at least some budget data */
+if(typeof data!=='object'||data===null){popupAlert('Erreur','Code de transfert invalide.');return false;}
 pushUndo();
 state=Object.assign(defaultState(),data);
-/* Restore stripped defaults: merge back missing default expenses/investments */
+/* Restore stripped defaults */
 var defExp=JSON.parse(JSON.stringify(DEF_EXP));
 var defInv=JSON.parse(JSON.stringify(DEF_INV));
-if(state.expenses){defExp.forEach(function(de){var found=false;state.expenses.forEach(function(e){if(e.id===de.id)found=true;});if(!found)state.expenses.push(de);});}
-if(state.investments){defInv.forEach(function(di){var found=false;state.investments.forEach(function(inv){if(inv.id===di.id)found=true;});if(!found)state.investments.push(di);});}
+defExp.forEach(function(de){var found=false;(state.expenses||[]).forEach(function(e){if(e.id===de.id)found=true;});if(!found){if(!state.expenses)state.expenses=[];state.expenses.push(de);}});
+defInv.forEach(function(di){var found=false;(state.investments||[]).forEach(function(inv){if(inv.id===di.id)found=true;});if(!found){if(!state.investments)state.investments=[];state.investments.push(di);}});
 migrateInvestments();
 applyTheme();
-save();renderAll();updateProfileDisplay();
+/* Create profile entry if missing */
+if(currentProfileId){save();}else{
+var name=(state.profile&&state.profile.name)||'Import';
+var id='p-'+Date.now()+'-'+Math.random().toString(36).substr(2,6);
+var p=getProfiles();
+p.push({id:id,name:name,lastModified:new Date().toISOString()});
+saveProfiles(p);currentProfileId=id;localStorage.setItem('budget-current-profile',id);save();
+}
+renderAll();updateProfileDisplay();hideProfileScreen();
 return true;
-}catch(e){popupAlert('Erreur','Code de transfert invalide ou corrompu.');return false;}
+}catch(e){popupAlert('Erreur','Code de transfert invalide ou corrompu. Verifiez que vous avez copie le code en entier.');return false;}
 }
 
 /* QR Code generator */
