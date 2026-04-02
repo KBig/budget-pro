@@ -2079,7 +2079,7 @@ msg.appendChild(copyBtn);
 }else{
 /* Data too large for QR — use manual code copy */
 var desc2=document.createElement('p');desc2.style.cssText='font-size:13px;color:var(--text-secondary);margin-bottom:12px';
-desc2.textContent='Votre profil est trop volumineux pour un QR code. Copiez le code ci-dessous et collez-le sur votre autre appareil via "Recevoir un transfert".';
+desc2.textContent='Votre profil est trop volumineux pour un QR code. Pour transferer: 1) Copiez le code ci-dessous. 2) Ouvrez Budget Pro sur l\'autre appareil. 3) Allez dans Parametres > Recevoir un transfert. 4) Collez le code.';
 msg.appendChild(desc2);
 
 var codeBox=document.createElement('textarea');codeBox.value=code;codeBox.readOnly=true;
@@ -2191,9 +2191,5 @@ else if(profiles.length===1)selectProfile(profiles[0].id);
 else showProfileScreen();
 /* Check for transfer via URL */
 checkTransferURL();
-/* Register service worker for PWA/offline */
-if('serviceWorker' in navigator){
-navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(function(reg){reg.update();}).catch(function(){});
-navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.type==='SW_UPDATED'){window.location.reload();}});
-}
+/* SW removed — caused persistent caching issues */
 })();
