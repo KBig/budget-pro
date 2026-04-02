@@ -1,8 +1,7 @@
-var CACHE_NAME='budget-pro-v5';
+var CACHE_NAME='budget-pro-v6';
 var ASSETS=[
 './',
 './index.html',
-'./app.js',
 './manifest.json',
 'https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js'
 ];
