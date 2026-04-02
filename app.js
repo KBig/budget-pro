@@ -705,16 +705,16 @@ return '<div class="section" id="section-projections"><h2 class="section-title">
 '<div class="card"><div class="card-title">Configuration par placement <span class="tooltip" data-tip="Ajustez le solde initial, le rendement, et ajoutez des changements de contribution a des annees precises">&#9432;</span></div><div id="proj-config"></div></div>'+
 '<div class="card"><div class="card-title">Evenements planifies <button class="btn btn-sm btn-primary" onclick="addProjEvent()">+ Evenement</button> <span class="tooltip" data-tip="Augmentation de salaire, achat maison, enfant, retraite... tout ce qui change vos contributions">&#9432;</span></div><div id="proj-events-list"></div><p id="proj-events-empty" style="color:var(--text-muted);font-size:13px;padding:12px 0">Aucun evenement. Ajoutez des changements de contribution dans le temps (ex: augmenter CELI a 700$/mois a partir de 2028).</p></div>'+
 '<div class="card"><div class="card-title">Croissance projetee</div><div class="chart-container" style="height:420px"><canvas id="chart-projection"></canvas></div></div>'+
-'<div class="card"><div class="card-title">Detail annee par annee</div><div style="overflow-x:auto"><table class="data-table" id="proj-detail-table"><thead><tr><th>Annee</th><th id="proj-thead-extra"></th><th>Contributions cumulees</th><th>Rendements</th><th>Total</th><th>Total reel</th></tr></thead><tbody id="projection-tbody"></tbody></table></div></div></div>';
+'<div class="card"><div class="card-title">Detail annee par annee</div><p style="color:var(--text-muted);font-size:13px;margin-bottom:12px">Evolution de vos placements annee par annee, avec rendements composes et ajustement pour l\'inflation.</p><div style="overflow-x:auto"><table class="data-table" id="proj-detail-table"><thead><tr><th>Annee</th><th>Contributions cumulees</th><th>Rendements</th><th>Total</th><th>Valeur reelle (inflation)</th></tr></thead><tbody id="projection-tbody"></tbody></table></div></div></div>';
 }
 
 function buildSimulateursHTML(){
-return '<div class="section" id="section-simulateurs"><h2 class="section-title">Simulateurs</h2><p class="section-desc">Planifiez votre avenir financier</p>'+
+return '<div class="section" id="section-simulateurs"><h2 class="section-title">Simulateurs</h2><p class="section-desc">Planifiez votre avenir financier avec nos outils de simulation interactifs</p>'+
 '<div class="view-tabs"><button class="view-tab active" onclick="showSimTab(\'retraite\',this)">Retraite</button><button class="view-tab" onclick="showSimTab(\'hypotheque\',this)">Hypotheque</button><button class="view-tab" onclick="showSimTab(\'fire\',this)">FIRE</button><button class="view-tab" onclick="showSimTab(\'epargne\',this)">Epargne</button></div>'+
-'<div id="sim-retraite"><div class="card"><div class="card-title">Retraite</div><div class="form-row"><div class="form-group"><label>Age actuel</label><input type="number" id="sim-ret-age" value="30" min="18" max="80" onchange="calcRetraite()"></div><div class="form-group"><label>Age retraite</label><input type="number" id="sim-ret-retire" value="65" min="50" onchange="calcRetraite()"></div><div class="form-group"><label>Esperance vie</label><input type="number" id="sim-ret-life" value="90" min="70" onchange="calcRetraite()"></div></div><div class="form-row"><div class="form-group"><label>Epargne actuelle ($)</label><input type="number" id="sim-ret-current" value="0" min="0" step="1000" onchange="calcRetraite()"></div><div class="form-group"><label>RRQ/mois a 65 ans</label><input type="number" id="sim-ret-rrq" value="900" onchange="calcRetraite()"></div><div class="form-group"><label>PSV/mois a 65 ans</label><input type="number" id="sim-ret-psv" value="700" onchange="calcRetraite()"></div></div><div class="form-row"><div class="form-group"><label>Depenses/mois retraite</label><input type="number" id="sim-ret-exp" value="3000" onchange="calcRetraite()"></div><div class="form-group"><label>Rendement (%)</label><input type="number" id="sim-ret-rate" value="6" step="0.5" onchange="calcRetraite()"></div><div class="form-group"><label>Inflation (%)</label><input type="number" id="sim-ret-infl" value="2" step="0.5" onchange="calcRetraite()"></div></div><div id="sim-ret-results" class="sim-result"></div></div></div>'+
-'<div id="sim-hypotheque" style="display:none"><div class="card"><div class="card-title">Hypotheque</div><div class="form-row"><div class="form-group"><label>Prix ($)</label><input type="number" id="sim-hyp-price" value="400000" step="5000" onchange="calcHyp()"></div><div class="form-group"><label>Mise de fonds ($)</label><input type="number" id="sim-hyp-down" value="80000" step="1000" onchange="calcHyp()"></div><div class="form-group"><label>Taux (%)</label><input type="number" id="sim-hyp-rate" value="5.5" step="0.05" onchange="calcHyp()"></div></div><div class="form-row"><div class="form-group"><label>Amortissement</label><select id="sim-hyp-amort" onchange="calcHyp()"><option value="15">15 ans</option><option value="20">20 ans</option><option value="25" selected>25 ans</option><option value="30">30 ans</option></select></div><div class="form-group"><label>Frequence</label><select id="sim-hyp-freq" onchange="calcHyp()"><option value="12">Mensuel</option><option value="26">Aux 2 sem</option><option value="52">Hebdo</option></select></div><div class="form-group"><label>Taxes/an ($)</label><input type="number" id="sim-hyp-taxes" value="3000" onchange="calcHyp()"></div></div><div id="sim-hyp-results" class="sim-result"></div></div></div>'+
-'<div id="sim-fire" style="display:none"><div class="card"><div class="card-title">FIRE <span class="tooltip" data-tip="Financial Independence Retire Early - Regle du 4%">&#9432;</span></div><div class="form-row"><div class="form-group"><label>Depenses annuelles ($)</label><input type="number" id="sim-fire-exp" value="36000" step="1000" onchange="calcFIRE()"></div><div class="form-group"><label>Epargne actuelle ($)</label><input type="number" id="sim-fire-current" value="0" step="1000" onchange="calcFIRE()"></div><div class="form-group"><label>Epargne annuelle ($)</label><input type="number" id="sim-fire-annual" value="15000" step="1000" onchange="calcFIRE()"></div></div><div class="form-row"><div class="form-group"><label>Rendement (%)</label><input type="number" id="sim-fire-rate" value="7" step="0.5" onchange="calcFIRE()"></div><div class="form-group"><label>Taux retrait (%)</label><input type="number" id="sim-fire-wr" value="4" step="0.5" onchange="calcFIRE()"></div></div><div id="sim-fire-results" class="sim-result"></div></div></div>'+
-'<div id="sim-epargne" style="display:none"><div class="card"><div class="card-title">Epargne</div><div class="form-row"><div class="form-group"><label>Initial ($)</label><input type="number" id="sim-sav-init" value="1000" step="100" onchange="calcEpargne()"></div><div class="form-group"><label>Contrib/mois ($)</label><input type="number" id="sim-sav-monthly" value="500" step="50" onchange="calcEpargne()"></div></div><div class="form-row"><div class="form-group"><label>Rendement (%)</label><input type="number" id="sim-sav-rate" value="6" step="0.5" onchange="calcEpargne()"></div><div class="form-group"><label>Duree (ans)</label><input type="number" id="sim-sav-years" value="20" min="1" onchange="calcEpargne()"></div></div><div id="sim-sav-results" class="sim-result"></div><div class="chart-container" style="margin-top:16px"><canvas id="chart-sim-savings"></canvas></div></div></div></div>';
+'<div id="sim-retraite"><div class="card"><div class="card-title">Simulateur de retraite</div><p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Estimez le capital necessaire pour maintenir votre niveau de vie a la retraite, en tenant compte du RRQ, de la PSV et de l\'inflation. Les resultats se mettent a jour automatiquement.</p><div class="form-row"><div class="form-group"><label>Age actuel</label><input type="number" id="sim-ret-age" value="30" min="18" max="80" oninput="calcRetraite()"></div><div class="form-group"><label>Age souhaite de retraite</label><input type="number" id="sim-ret-retire" value="65" min="50" oninput="calcRetraite()"></div><div class="form-group"><label>Esperance de vie</label><input type="number" id="sim-ret-life" value="90" min="70" oninput="calcRetraite()"></div></div><div class="form-row"><div class="form-group"><label>Epargne deja accumulee ($)</label><input type="number" id="sim-ret-current" value="0" min="0" step="1000" oninput="calcRetraite()"></div><div class="form-group"><label>RRQ prevu/mois a 65 ans ($)</label><input type="number" id="sim-ret-rrq" value="900" oninput="calcRetraite()"></div><div class="form-group"><label>PSV prevu/mois a 65 ans ($)</label><input type="number" id="sim-ret-psv" value="700" oninput="calcRetraite()"></div></div><div class="form-row"><div class="form-group"><label>Depenses mensuelles a la retraite ($)</label><input type="number" id="sim-ret-exp" value="3000" oninput="calcRetraite()"></div><div class="form-group"><label>Rendement annuel estime (%)</label><input type="number" id="sim-ret-rate" value="6" step="0.5" oninput="calcRetraite()"></div><div class="form-group"><label>Inflation annuelle (%)</label><input type="number" id="sim-ret-infl" value="2" step="0.5" oninput="calcRetraite()"></div></div><div id="sim-ret-results" class="sim-result"></div></div></div>'+
+'<div id="sim-hypotheque" style="display:none"><div class="card"><div class="card-title">Simulateur hypothecaire</div><p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Calculez vos paiements hypothecaires selon differents scenarios. Inclut le calcul de la prime SCHL si la mise de fonds est inferieure a 20%.</p><div class="form-row"><div class="form-group"><label>Prix de la propriete ($)</label><input type="number" id="sim-hyp-price" value="400000" step="5000" oninput="calcHyp()"></div><div class="form-group"><label>Mise de fonds ($)</label><input type="number" id="sim-hyp-down" value="80000" step="1000" oninput="calcHyp()"></div><div class="form-group"><label>Taux d\'interet (%)</label><input type="number" id="sim-hyp-rate" value="5.5" step="0.05" oninput="calcHyp()"></div></div><div class="form-row"><div class="form-group"><label>Amortissement</label><select id="sim-hyp-amort" onchange="calcHyp()"><option value="15">15 ans</option><option value="20">20 ans</option><option value="25" selected>25 ans</option><option value="30">30 ans</option></select></div><div class="form-group"><label>Frequence de paiement</label><select id="sim-hyp-freq" onchange="calcHyp()"><option value="12">Mensuel</option><option value="26">Aux 2 semaines</option><option value="52">Hebdomadaire</option></select></div><div class="form-group"><label>Taxes foncieres/an ($)</label><input type="number" id="sim-hyp-taxes" value="3000" oninput="calcHyp()"></div></div><div id="sim-hyp-results" class="sim-result"></div></div></div>'+
+'<div id="sim-fire" style="display:none"><div class="card"><div class="card-title">Simulateur FIRE <span class="tooltip" data-tip="Financial Independence Retire Early">&#9432;</span></div><p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Le mouvement FIRE (Financial Independence, Retire Early) vise a accumuler suffisamment de capital pour vivre de vos placements. La regle du 4% suggere d\'accumuler 25x vos depenses annuelles.</p><div class="form-row"><div class="form-group"><label>Depenses annuelles ($)</label><input type="number" id="sim-fire-exp" value="36000" step="1000" oninput="calcFIRE()"></div><div class="form-group"><label>Epargne deja accumulee ($)</label><input type="number" id="sim-fire-current" value="0" step="1000" oninput="calcFIRE()"></div><div class="form-group"><label>Epargne annuelle prevue ($)</label><input type="number" id="sim-fire-annual" value="15000" step="1000" oninput="calcFIRE()"></div></div><div class="form-row"><div class="form-group"><label>Rendement annuel estime (%)</label><input type="number" id="sim-fire-rate" value="7" step="0.5" oninput="calcFIRE()"></div><div class="form-group"><label>Taux de retrait (%) <span style="font-weight:400;color:var(--text-muted)">(regle du 4%)</span></label><input type="number" id="sim-fire-wr" value="4" step="0.5" oninput="calcFIRE()"></div></div><div id="sim-fire-results" class="sim-result"></div></div></div>'+
+'<div id="sim-epargne" style="display:none"><div class="card"><div class="card-title">Simulateur d\'epargne</div><p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Projetez la croissance de votre epargne dans le temps grace a l\'interet compose. Voyez l\'impact de contributions regulieres sur votre capital futur.</p><div class="form-row"><div class="form-group"><label>Capital initial ($)</label><input type="number" id="sim-sav-init" value="1000" step="100" oninput="calcEpargne()"></div><div class="form-group"><label>Contribution mensuelle ($)</label><input type="number" id="sim-sav-monthly" value="500" step="50" oninput="calcEpargne()"></div></div><div class="form-row"><div class="form-group"><label>Rendement annuel estime (%)</label><input type="number" id="sim-sav-rate" value="6" step="0.5" oninput="calcEpargne()"></div><div class="form-group"><label>Duree de placement (ans)</label><input type="number" id="sim-sav-years" value="20" min="1" oninput="calcEpargne()"></div></div><div id="sim-sav-results" class="sim-result"></div><div class="chart-container" style="margin-top:16px"><canvas id="chart-sim-savings"></canvas></div></div></div></div>';
 }
 
 function buildTransactionsHTML(){
@@ -960,7 +960,8 @@ addEnterSubmit('nw-modal-overlay',confirmNwItem);
 /* ═══════════════════════════════════════════════════
    RENDER ALL
    ═══════════════════════════════════════════════════ */
-function renderAll(){refreshProfileDynamicInfo();renderRevenu();renderExpenses();renderInvestments();renderGoals();renderDashboard();renderCharts();renderProjection();renderNetWorth();renderDebts();renderTransactions();renderProfil();save();}
+function renderAll(){refreshProfileDynamicInfo();renderRevenu();renderExpenses();renderInvestments();renderGoals();renderDashboard();renderCharts();renderProjection();renderNetWorth();renderDebts();renderTransactions();renderProfil();renderSimulateurs();save();}
+function renderSimulateurs(){try{calcRetraite();}catch(e){}try{calcHyp();}catch(e){}try{calcFIRE();}catch(e){}try{calcEpargne();}catch(e){}}
 function recalculate(){updateRevenuDisplays();updateExpTotals();updateInvTotals();updateCatDisplays();renderDashboard();renderCharts();renderProjection();renderGoals();renderNetWorth();renderDebts();save();}
 
 /* Revenue */
@@ -1728,7 +1729,6 @@ renderProjEvents();
 /* ── Calculate projections with events ── */
 var yLabels=[];for(var y=0;y<=years;y++)yLabels.push(cy+y);
 var datasets=[],totals=new Array(years+1).fill(0),cumC=new Array(years+1).fill(0);
-var perInvData={};
 var ic=['#3b82f6','#6366f1','#8b5cf6','#a855f7','#06b6d4','#14b8a6','#f59e0b','#ef4444','#22c55e'];
 
 allInv.forEach(function(item,ci){
@@ -1750,7 +1750,6 @@ overrides[ev.year]=ev.monthlyAmount*12;
 var vals=[startBal],acc=startBal;
 /* Track cumulative contributions; include startBal as prior contributions toward lifetimeLimit */
 var tC=lifeCap>0?startBal:0;
-var yearData=[];
 
 for(var yr=1;yr<=years;yr++){
 var yearNum=cy+yr;
@@ -1769,10 +1768,7 @@ tC+=contrib;
 vals.push(acc);
 totals[yr]+=acc;
 cumC[yr]+=tC;
-yearData.push({year:yearNum,contrib:contrib,interest:interest,total:acc,cumContrib:tC});
 }
-
-perInvData[item.name]=yearData;
 
 if(baseAnnual>0||startBal>0){
 var lbl=item.name;
@@ -1790,36 +1786,16 @@ options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',int
 plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:12}}},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+fmt(c.parsed.y);}}}},
 scales:{y:{grid:{color:gc2},ticks:{callback:function(v){return fmtS(v);}}},x:{grid:{color:gc2},ticks:{maxTicksLimit:15}}}}});
 
-/* ── Detail table with per-investment columns ── */
-var thead=document.getElementById('proj-thead-extra');if(thead)thead.textContent='';
-var activeNames=[];allInv.forEach(function(inv){if(catAnnual(inv)>0||(state.projBalances['bal_'+inv.id]||0)>0)activeNames.push(inv.name);});
-
+/* ── Detail table ── */
 var tb2=document.getElementById('projection-tbody');tb2.textContent='';
 for(var py=1;py<=years;py++){
 var tr=document.createElement('tr');
-/* Year */
 var tdY=document.createElement('td');tdY.textContent=cy+py;tr.appendChild(tdY);
-/* Per-investment values */
-activeNames.forEach(function(name){
-var d=perInvData[name];
-var td=document.createElement('td');
-if(d&&d[py-1])td.textContent=fmtS(d[py-1].total);
-else td.textContent='--';
-td.style.fontSize='12px';
-tr.appendChild(td);
-});
-/* Totals */
-var cells=[fmt(cumC[py]),fmt(totals[py]-cumC[py]),fmt(totals[py]),fmt(totals[py]/Math.pow(1+infl,py))];
-cells.forEach(function(v,ci2){var td=document.createElement('td');td.textContent=v;if(ci2===2)td.style.fontWeight='700';if(ci2===3)td.style.color='var(--text-muted)';tr.appendChild(td);});
+var tdC=document.createElement('td');tdC.textContent=fmt(cumC[py]);tr.appendChild(tdC);
+var tdR=document.createElement('td');tdR.textContent=fmt(totals[py]-cumC[py]);tr.appendChild(tdR);
+var tdT=document.createElement('td');tdT.textContent=fmt(totals[py]);tdT.style.fontWeight='700';tr.appendChild(tdT);
+var tdV=document.createElement('td');tdV.textContent=fmt(totals[py]/Math.pow(1+infl,py));tdV.style.color='var(--text-muted)';tr.appendChild(tdV);
 tb2.appendChild(tr);
-}
-
-/* Update thead with investment names */
-if(thead){
-activeNames.forEach(function(name){
-var th=document.createElement('th');th.textContent=name;thead.parentNode.insertBefore(th,thead.nextSibling);
-});
-thead.parentNode.removeChild(thead);
 }
 }
 
@@ -1903,18 +1879,20 @@ ov.classList.add('active');
 }
 
 /* Simulators */
-function showSimTab(tab,btn){['retraite','hypotheque','fire','epargne'].forEach(function(t){var el=document.getElementById('sim-'+t);if(el)el.style.display=t===tab?'':'none';});var tabs=btn.parentNode.children;for(var i=0;i<tabs.length;i++)tabs[i].classList.remove('active');btn.classList.add('active');}
+function showSimTab(tab,btn){['retraite','hypotheque','fire','epargne'].forEach(function(t){var el=document.getElementById('sim-'+t);if(el)el.style.display=t===tab?'':'none';});var tabs=btn.parentNode.children;for(var i=0;i<tabs.length;i++)tabs[i].classList.remove('active');btn.classList.add('active');var calcMap={retraite:calcRetraite,hypotheque:calcHyp,fire:calcFIRE,epargne:calcEpargne};if(calcMap[tab])try{calcMap[tab]();}catch(e){}}
 function calcRetraite(){var age=parseInt(document.getElementById('sim-ret-age').value)||30;var retAge=parseInt(document.getElementById('sim-ret-retire').value)||65;var life=parseInt(document.getElementById('sim-ret-life').value)||90;var current=parseFloat(document.getElementById('sim-ret-current').value)||0;var rrq=parseFloat(document.getElementById('sim-ret-rrq').value)||0;var psv=parseFloat(document.getElementById('sim-ret-psv').value)||0;var expenses=parseFloat(document.getElementById('sim-ret-exp').value)||0;var rate=(parseFloat(document.getElementById('sim-ret-rate').value)||6)/100;var infl=(parseFloat(document.getElementById('sim-ret-infl').value)||2)/100;
 var yrs=Math.max(retAge-age,0),yrsRet=Math.max(life-retAge,0);var monthlyInv=totalInv()/12;
 var accum=current;for(var y=0;y<yrs;y++)accum=accum*(1+rate)+monthlyInv*12;
 var govInc=(rrq+psv)*12;var annualNeed=expenses*12*Math.pow(1+infl,yrs);var gap=annualNeed-govInc;var realR=rate-infl;
 var needed=gap>0&&realR>0?gap*(1-Math.pow(1+realR,-yrsRet))/realR:gap*yrsRet;
 var surplus=accum-needed;
+var contribReq=0;if(needed>current&&yrs>0&&rate>0){var fvCurrent=current*Math.pow(1+rate,yrs);var shortfall=needed-fvCurrent;if(shortfall>0){contribReq=shortfall*rate/(Math.pow(1+rate,yrs)-1)/12;}}
+var revenuMensuel=accum>0&&realR>0?accum*realR/(1-Math.pow(1+realR,-yrsRet))/12:accum/(yrsRet*12||1);
 var r=document.getElementById('sim-ret-results');r.textContent='';
 var g=document.createElement('div');g.className='sim-result-grid';
-[['Capital retraite',fmtS(accum),'color:var(--accent)'],['Capital requis',fmtS(needed),''],[(surplus>=0?'Surplus':'Deficit'),fmtS(surplus),surplus>=0?'color:var(--success)':'color:var(--danger)'],['Gouv/mois',fmt(rrq+psv),'color:var(--success)'],['Besoin/mois',fmt(annualNeed/12),'']].forEach(function(item){var d=document.createElement('div');d.className='sim-result-item';var l=document.createElement('div');l.className='sim-result-label';l.textContent=item[0];var v=document.createElement('div');v.className='sim-result-value';v.textContent=item[1];if(item[2])v.style.cssText=item[2];d.appendChild(l);d.appendChild(v);g.appendChild(d);});
+[['Capital projete a la retraite',fmtS(accum),'color:var(--accent)'],['Capital necessaire',fmtS(needed),''],[(surplus>=0?'Surplus':'Deficit'),fmtS(Math.abs(surplus)),surplus>=0?'color:var(--success)':'color:var(--danger)'],['Contribution mensuelle requise',fmt(contribReq),'color:var(--accent)'],['Age de retraite',retAge+' ans',''],['Duree de la retraite',yrsRet+' ans',''],['Revenu gouv./mois (RRQ+PSV)',fmt(rrq+psv),'color:var(--success)'],['Depenses mensuelles ajustees',fmt(annualNeed/12),''],['Revenu mensuel projete',fmt(revenuMensuel+rrq+psv),'color:var(--accent)']].forEach(function(item){var d=document.createElement('div');d.className='sim-result-item';var l=document.createElement('div');l.className='sim-result-label';l.textContent=item[0];var v=document.createElement('div');v.className='sim-result-value';v.textContent=item[1];if(item[2])v.style.cssText=item[2];d.appendChild(l);d.appendChild(v);g.appendChild(d);});
 r.appendChild(g);
-var msg=document.createElement('div');msg.className='alert '+(surplus>=0?'alert-success':'alert-danger');msg.style.marginTop='12px';msg.textContent=surplus>=0?'En bonne voie!':'Il manque '+fmtS(Math.abs(surplus))+'.';r.appendChild(msg);}
+var msg=document.createElement('div');msg.className='alert '+(surplus>=0?'alert-success':'alert-danger');msg.style.marginTop='12px';msg.textContent=surplus>=0?'En bonne voie! Surplus projete de '+fmtS(surplus)+' a la retraite.':'Il manque '+fmtS(Math.abs(surplus))+'. Epargnez '+fmt(contribReq)+'/mois pour combler l\'ecart.';r.appendChild(msg);}
 function calcHyp(){var price=parseFloat(document.getElementById('sim-hyp-price').value)||0;var down=parseFloat(document.getElementById('sim-hyp-down').value)||0;var rate=(parseFloat(document.getElementById('sim-hyp-rate').value)||5)/100;var amort=parseInt(document.getElementById('sim-hyp-amort').value)||25;var freq=parseInt(document.getElementById('sim-hyp-freq').value)||12;var taxes=parseFloat(document.getElementById('sim-hyp-taxes').value)||0;
 var downPct=price>0?down/price*100:0;var mortgage=price-down;
 var schl=0;if(downPct<20&&downPct>=5){schl=mortgage*(downPct<10?0.04:downPct<15?0.031:0.028);}
@@ -1926,18 +1904,22 @@ var g=document.createElement('div');g.className='sim-result-grid';
 [['Mise de fonds',fmtS(down)+' ('+fmtP(downPct)+')','color:var(--accent)'],['Hypotheque',fmtS(total),''],schl>0?['SCHL',fmtS(schl),'color:var(--warning)']:null,['Paiement',fmt(pay),'color:var(--danger)'],['Cout mensuel',fmt(monthly),'color:var(--danger)'],['Interet total',fmtS(totalInt),'color:var(--danger)']].forEach(function(item){if(!item)return;var d=document.createElement('div');d.className='sim-result-item';var l=document.createElement('div');l.className='sim-result-label';l.textContent=item[0];var v=document.createElement('div');v.className='sim-result-value';v.textContent=item[1];if(item[2])v.style.cssText=item[2];d.appendChild(l);d.appendChild(v);g.appendChild(d);});
 r.appendChild(g);if(downPct<20){var w=document.createElement('div');w.className='alert alert-warning';w.style.marginTop='12px';w.textContent='Mise de fonds < 20%: SCHL de '+fmtS(schl)+' ajoutee.';r.appendChild(w);}}
 function calcFIRE(){var expenses=parseFloat(document.getElementById('sim-fire-exp').value)||0;var current=parseFloat(document.getElementById('sim-fire-current').value)||0;var annual=parseFloat(document.getElementById('sim-fire-annual').value)||0;var rate=(parseFloat(document.getElementById('sim-fire-rate').value)||7)/100;var wr=(parseFloat(document.getElementById('sim-fire-wr').value)||4)/100;
-var fireNum=expenses/wr;var years=0;if(annual>0&&fireNum>current){var acc=current;for(var y=1;y<=100;y++){acc=acc*(1+rate)+annual;if(acc>=fireNum){years=y;break;}}}
+var fireNum=wr>0?expenses/wr:0;var years=0;if(annual>0&&fireNum>current){var acc=current;for(var y=1;y<=100;y++){acc=acc*(1+rate)+annual;if(acc>=fireNum){years=y;break;}}}
 var firePct=fireNum>0?Math.min(current/fireNum*100,100):0;
+var profileAge=getProfileAge()||30;var ageFire=years>0?profileAge+years:0;
+var revenuPassifAnnuel=current*wr;var revenuPassifMensuel=revenuPassifAnnuel/12;
 var r=document.getElementById('sim-fire-results');r.textContent='';
 var g=document.createElement('div');g.className='sim-result-grid';
-[['Nombre FIRE',fmtS(fireNum),'color:var(--accent)'],['Lean FIRE',fmtS(expenses*0.6/wr),'color:var(--text-muted)'],['Fat FIRE',fmtS(expenses*1.5/wr),'color:var(--text-muted)'],['Progression',fmtP(firePct),firePct>=100?'color:var(--success)':'color:var(--accent)'],years>0?['FIRE dans',years+' ans','color:var(--success)']:null,['Revenu passif/mois',fmt(current*wr/12),'color:var(--success)']].forEach(function(item){if(!item)return;var d=document.createElement('div');d.className='sim-result-item';var l=document.createElement('div');l.className='sim-result-label';l.textContent=item[0];var v=document.createElement('div');v.className='sim-result-value';v.textContent=item[1];if(item[2])v.style.cssText=item[2];d.appendChild(l);d.appendChild(v);g.appendChild(d);});
+[['Nombre FIRE (objectif)',fmtS(fireNum),'color:var(--accent)'],years>0?['Annees pour atteindre FIRE',years+' ans','color:var(--success)']:['Annees pour atteindre FIRE',firePct>=100?'Atteint!':'--','color:'+(firePct>=100?'var(--success)':'var(--text-muted)')],ageFire>0?['Age FIRE atteint',ageFire+' ans','color:var(--success)']:['Age FIRE atteint',firePct>=100?'Deja atteint!':'--','color:'+(firePct>=100?'var(--success)':'var(--text-muted)')],['Progression actuelle',fmtP(firePct),firePct>=100?'color:var(--success)':'color:var(--accent)'],['Revenu passif annuel potentiel',fmtS(revenuPassifAnnuel),'color:var(--success)'],['Revenu passif mensuel potentiel',fmt(revenuPassifMensuel),'color:var(--success)'],['Lean FIRE (60% depenses)',fmtS(expenses*0.6/(wr||0.04)),'color:var(--text-muted)'],['Fat FIRE (150% depenses)',fmtS(expenses*1.5/(wr||0.04)),'color:var(--text-muted)']].forEach(function(item){if(!item)return;var d=document.createElement('div');d.className='sim-result-item';var l=document.createElement('div');l.className='sim-result-label';l.textContent=item[0];var v=document.createElement('div');v.className='sim-result-value';v.textContent=item[1];if(item[2])v.style.cssText=item[2];d.appendChild(l);d.appendChild(v);g.appendChild(d);});
 r.appendChild(g);
-var bar=document.createElement('div');bar.className='progress-bar';bar.style.cssText='margin-top:16px;height:16px';var fill=document.createElement('div');fill.className='progress-segment';fill.style.cssText='width:'+firePct+'%;background:linear-gradient(90deg,var(--accent),var(--success))';bar.appendChild(fill);r.appendChild(bar);}
+var bar=document.createElement('div');bar.className='progress-bar';bar.style.cssText='margin-top:16px;height:16px';var fill=document.createElement('div');fill.className='progress-segment';fill.style.cssText='width:'+firePct+'%;background:linear-gradient(90deg,var(--accent),var(--success))';bar.appendChild(fill);r.appendChild(bar);
+var pctLabel=document.createElement('div');pctLabel.style.cssText='text-align:center;font-size:12px;color:var(--text-muted);margin-top:6px';pctLabel.textContent=fmtP(firePct)+' de l\'objectif FIRE atteint';r.appendChild(pctLabel);}
 function calcEpargne(){var init=parseFloat(document.getElementById('sim-sav-init').value)||0;var monthly=parseFloat(document.getElementById('sim-sav-monthly').value)||0;var rate=(parseFloat(document.getElementById('sim-sav-rate').value)||6)/100;var years=parseInt(document.getElementById('sim-sav-years').value)||20;
 var mr=rate/12,n=years*12;var fv=init*Math.pow(1+mr,n)+monthly*(mr>0?(Math.pow(1+mr,n)-1)/mr:n);var contrib=init+monthly*n;
 var r=document.getElementById('sim-sav-results');r.textContent='';
 var g=document.createElement('div');g.className='sim-result-grid';
-[['Valeur finale',fmtS(fv),'color:var(--success)'],['Contributions',fmtS(contrib),'color:var(--accent)'],['Interets',fmtS(fv-contrib),'color:var(--success)']].forEach(function(item){var d=document.createElement('div');d.className='sim-result-item';var l=document.createElement('div');l.className='sim-result-label';l.textContent=item[0];var v=document.createElement('div');v.className='sim-result-value';v.textContent=item[1];if(item[2])v.style.cssText=item[2];d.appendChild(l);d.appendChild(v);g.appendChild(d);});r.appendChild(g);
+var intPct=fv>0?(fv-contrib)/fv*100:0;
+[['Valeur finale',fmtS(fv),'color:var(--success)'],['Contributions totales',fmtS(contrib),'color:var(--accent)'],['Interets gagnes',fmtS(fv-contrib),'color:var(--success)'],['Part des interets',fmtP(intPct),'color:var(--success)'],['Rendement total',fmtP(contrib>0?(fv-contrib)/contrib*100:0),'']].forEach(function(item){var d=document.createElement('div');d.className='sim-result-item';var l=document.createElement('div');l.className='sim-result-label';l.textContent=item[0];var v=document.createElement('div');v.className='sim-result-value';v.textContent=item[1];if(item[2])v.style.cssText=item[2];d.appendChild(l);d.appendChild(v);g.appendChild(d);});r.appendChild(g);
 var labels=[],dC=[],dT=[];for(var y=0;y<=years;y++){labels.push(y);var ny=y*12;dT.push(init*Math.pow(1+mr,ny)+monthly*(mr>0?(Math.pow(1+mr,ny)-1)/mr:ny));dC.push(init+monthly*ny);}
 mkChart('chart-sim-savings',{type:'line',data:{labels:labels,datasets:[{label:'Total',data:dT,borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.3,pointRadius:0},{label:'Contributions',data:dC,borderColor:'#3b82f6',borderDash:[5,5],fill:false,tension:0,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:function(v){return fmtS(v)}}},x:{title:{display:true,text:'Annees'}}}}});}
 
