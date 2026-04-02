@@ -93,7 +93,8 @@ function popupConfirm(t,m,fn){popup(t,m,[{label:'Annuler',cls:'btn-outline'},{la
 function getProfiles(){try{return JSON.parse(localStorage.getItem('budget-profiles'))||[];}catch(e){return[];}}
 function saveProfiles(l){try{localStorage.setItem('budget-profiles',JSON.stringify(l));}catch(e){}}
 function save(){if(!currentProfileId)return;try{localStorage.setItem('budget-data-'+currentProfileId,JSON.stringify(state));}catch(e){}var p=getProfiles();for(var i=0;i<p.length;i++)if(p[i].id===currentProfileId){p[i].lastModified=new Date().toISOString();break;}saveProfiles(p);}
-function loadProfile(id){try{var s=localStorage.getItem('budget-data-'+id);if(s)state=Object.assign(defaultState(),JSON.parse(s));}catch(e){}currentProfileId=id;localStorage.setItem('budget-current-profile',id);}
+function migrateInvestments(){var defMap={};DEF_INV.forEach(function(d){defMap[d.name]=d;});state.investments.forEach(function(inv){var def=defMap[inv.name];if(def){if(inv.lifetimeLimit===undefined||inv.lifetimeLimit===null)inv.lifetimeLimit=def.lifetimeLimit||0;if(inv.maxYears===undefined||inv.maxYears===null)inv.maxYears=def.maxYears||0;}});}
+function loadProfile(id){try{var s=localStorage.getItem('budget-data-'+id);if(s)state=Object.assign(defaultState(),JSON.parse(s));}catch(e){}migrateInvestments();currentProfileId=id;localStorage.setItem('budget-current-profile',id);}
 function renderProfileList(){var profiles=getProfiles(),list=document.getElementById('profile-list');list.textContent='';if(!profiles.length){var e=document.createElement('div');e.className='profile-empty-state';var ei=document.createElement('div');ei.className='profile-empty-icon';ei.textContent='\u263A';e.appendChild(ei);var et=document.createElement('div');et.className='profile-empty-title';et.textContent='Pret a commencer?';e.appendChild(et);var ed=document.createElement('div');ed.className='profile-empty-desc';ed.textContent='Creez votre premier profil pour acceder a tous les outils de gestion financiere.';e.appendChild(ed);list.appendChild(e);return;}profiles.sort(function(a,b){return(b.lastModified||'').localeCompare(a.lastModified||'');});profiles.forEach(function(prof){
 var item=document.createElement('div');item.className='profile-item';
 var left=document.createElement('div');left.style.cssText='flex:1;cursor:pointer;display:flex;align-items:center';left.onclick=function(){selectProfile(prof.id);};
@@ -679,7 +680,13 @@ return '<div class="section" id="section-objectifs"><h2 class="section-title">Ob
 }
 
 function buildValeurNetteHTML(){
-return '<div class="section" id="section-valeur-nette"><h2 class="section-title">Valeur nette</h2><p class="section-desc">Actifs moins passifs</p><div class="stats-grid"><div class="stat-card"><div class="stat-label">Actifs</div><div class="stat-value positive" id="nw-total-assets">0 $</div></div><div class="stat-card"><div class="stat-label">Passifs</div><div class="stat-value negative" id="nw-total-liabilities">0 $</div></div><div class="stat-card"><div class="stat-label">Valeur nette</div><div class="stat-value accent" id="nw-net-worth">0 $</div></div><div class="stat-card"><div class="stat-label">Ratio</div><div class="stat-value" id="nw-ratio">--</div></div></div><div class="nw-grid"><div class="card"><div class="card-title">Actifs <button class="btn btn-sm btn-success" onclick="addNWItem(\'asset\')">+ Actif</button></div><div id="nw-assets-list"></div></div><div class="card"><div class="card-title">Passifs <button class="btn btn-sm btn-danger" onclick="addNWItem(\'liability\')">+ Passif</button></div><div id="nw-liabilities-list"></div></div></div><div class="card"><div class="card-title">Evolution</div><div class="chart-container"><canvas id="chart-networth"></canvas></div></div></div>';
+var h='<div class="section" id="section-valeur-nette"><h2 class="section-title">Valeur nette</h2><p class="section-desc">Actifs moins passifs</p>';
+h+='<div class="alert alert-info" style="margin-bottom:18px;padding:14px 18px;border-radius:10px;font-size:13px;line-height:1.6;background:var(--accent-bg,rgba(59,130,246,.08));border:1px solid var(--accent-border,rgba(59,130,246,.18));color:var(--text-primary)"><strong>Votre valeur nette = Actifs - Passifs.</strong> C\'est un indicateur cle de votre sante financiere. Ajoutez vos biens et dettes pour suivre votre progression.</div>';
+h+='<div class="stats-grid"><div class="stat-card"><div class="stat-label">Actifs</div><div class="stat-value positive" id="nw-total-assets">0 $</div></div><div class="stat-card"><div class="stat-label">Passifs</div><div class="stat-value negative" id="nw-total-liabilities">0 $</div></div><div class="stat-card"><div class="stat-label">Valeur nette</div><div class="stat-value accent" id="nw-net-worth">0 $</div></div><div class="stat-card"><div class="stat-label">Ratio</div><div class="stat-value" id="nw-ratio">--</div></div></div>';
+h+='<div class="nw-grid"><div class="card"><div class="card-title">Actifs <button class="btn btn-sm btn-success" onclick="addNWItem(\'asset\')">+ Actif</button></div><p style="color:var(--text-muted);font-size:12px;margin:0 0 10px 0">Ce que vous possedez (epargnes, propriete, vehicule, placements...)</p><div id="nw-assets-list"></div></div>';
+h+='<div class="card"><div class="card-title">Passifs <button class="btn btn-sm btn-danger" onclick="addNWItem(\'liability\')">+ Passif</button></div><p style="color:var(--text-muted);font-size:12px;margin:0 0 10px 0">Ce que vous devez (hypotheque, prets, cartes de credit...)</p><div id="nw-liabilities-list"></div></div></div>';
+h+='<div class="card"><div class="card-title">Evolution</div><div class="chart-container"><canvas id="chart-networth"></canvas></div></div></div>';
+return h;
 }
 
 function buildDettesHTML(){
@@ -931,7 +938,7 @@ document.body.appendChild(m4);
 
 /* NW modal */
 var m5=document.createElement('div');m5.className='modal-overlay';m5.id='nw-modal-overlay';
-m5.insertAdjacentHTML('beforeend','<div class="modal"><h3 id="nw-modal-title">Actif</h3><div class="form-group"><label>Nom</label><input type="text" id="nw-modal-name" placeholder="Ex: Maison"></div><div class="form-group"><label>Valeur ($)</label><input type="number" id="nw-modal-value" min="0"></div><div class="form-group"><label>Categorie</label><select id="nw-modal-cat"><option value="immobilier">Immobilier</option><option value="vehicule">Vehicule</option><option value="placement">Placement</option><option value="crypto">Crypto</option><option value="autre">Autre</option></select></div><input type="hidden" id="nw-modal-type" value="asset"><input type="hidden" id="nw-modal-edit-idx" value="-1"><div class="modal-actions"><button class="btn btn-outline" onclick="closeNwModal()">Annuler</button><button class="btn btn-primary" onclick="confirmNwItem()">Ajouter</button></div></div>');
+m5.insertAdjacentHTML('beforeend','<div class="modal"><h3 id="nw-modal-title">Actif</h3><div class="form-group"><label>Nom</label><input type="text" id="nw-modal-name" placeholder="ex: Compte epargne, Maison, Voiture, CELI..."></div><div class="form-group"><label>Valeur ($)</label><input type="number" id="nw-modal-value" min="0"></div><div class="form-group"><label>Categorie</label><select id="nw-modal-cat"><option value="epargne">Epargne</option><option value="immobilier">Immobilier</option><option value="vehicule">Vehicule</option><option value="placement">Placement (CELI, REER, CELIAPP)</option><option value="crypto">Crypto</option><option value="entreprise">Entreprise</option><option value="objets">Objets de valeur</option><option value="hypotheque">Hypotheque</option><option value="pret">Pret</option><option value="carte-credit">Carte de credit</option><option value="marge">Marge de credit</option><option value="autre">Autre</option></select></div><input type="hidden" id="nw-modal-type" value="asset"><input type="hidden" id="nw-modal-edit-idx" value="-1"><div class="modal-actions"><button class="btn btn-outline" onclick="closeNwModal()">Annuler</button><button class="btn btn-primary" onclick="confirmNwItem()">Ajouter</button></div></div>');
 document.body.appendChild(m5);
 
 /* Close on overlay click */
@@ -1276,7 +1283,7 @@ if(state.netWorthHistory.length>120)state.netWorthHistory.shift(); /* keep 10 ye
 /* Chart */
 var labels=[],data=[];state.netWorthHistory.forEach(function(h){labels.push(h.date);data.push(h.value);});
 mkChart('chart-networth',{type:'line',data:{labels:labels,datasets:[{label:'Valeur nette',data:data,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:4,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return fmtS(v)}}},x:{grid:{display:false}}}}});}
-function addNWItem(type){document.getElementById('nw-modal-title').textContent=type==='asset'?'Actif':'Passif';document.getElementById('nw-modal-type').value=type;document.getElementById('nw-modal-name').value='';document.getElementById('nw-modal-value').value='';document.getElementById('nw-modal-edit-idx').value='-1';document.getElementById('nw-modal-overlay').classList.add('active');document.getElementById('nw-modal-name').focus();}
+function addNWItem(type){document.getElementById('nw-modal-title').textContent=type==='asset'?'Actif':'Passif';document.getElementById('nw-modal-type').value=type;document.getElementById('nw-modal-name').value='';document.getElementById('nw-modal-name').placeholder=type==='asset'?'ex: Compte epargne, Maison, Voiture, CELI...':'ex: Hypotheque, Pret auto, Carte de credit...';document.getElementById('nw-modal-value').value='';document.getElementById('nw-modal-edit-idx').value='-1';var catSel=document.getElementById('nw-modal-cat');var opts=catSel.options;var i;for(i=0;i<opts.length;i++){opts[i].style.display='';};var assetCats=['epargne','immobilier','vehicule','placement','crypto','entreprise','objets','autre'];var liabCats=['hypotheque','pret','carte-credit','marge','autre'];var showCats=type==='asset'?assetCats:liabCats;for(i=0;i<opts.length;i++){if(showCats.indexOf(opts[i].value)===-1)opts[i].style.display='none';};catSel.value=showCats[0];document.getElementById('nw-modal-overlay').classList.add('active');document.getElementById('nw-modal-name').focus();}
 function closeNwModal(){document.getElementById('nw-modal-overlay').classList.remove('active');}
 function confirmNwItem(){pushUndo();var type=document.getElementById('nw-modal-type').value;var name=document.getElementById('nw-modal-name').value.trim();if(!name)return;var item={id:gid('nw'),name:name,value:parseFloat(document.getElementById('nw-modal-value').value)||0,category:document.getElementById('nw-modal-cat').value};if(type==='asset')state.netWorthAssets.push(item);else state.netWorthLiabilities.push(item);closeNwModal();renderAll();}
 
@@ -1740,7 +1747,9 @@ overrides[ev.year]=ev.monthlyAmount*12;
 }
 });
 
-var vals=[startBal],acc=startBal,tC=0;
+var vals=[startBal],acc=startBal;
+/* Track cumulative contributions; include startBal as prior contributions toward lifetimeLimit */
+var tC=lifeCap>0?startBal:0;
 var yearData=[];
 
 for(var yr=1;yr<=years;yr++){
@@ -1749,8 +1758,10 @@ var yearNum=cy+yr;
 var desired=overrides[yearNum]!==undefined?overrides[yearNum]:baseAnnual;
 var contrib=desired;
 if(cap>0&&contrib>cap)contrib=cap;
-if(lifeCap>0&&tC+contrib>lifeCap)contrib=Math.max(lifeCap-tC,0);
+/* Stop contributions after maxYears */
 if(maxYrs>0&&yr>maxYrs)contrib=0;
+/* Stop contributions once lifetime limit is reached */
+if(lifeCap>0&&tC+contrib>=lifeCap)contrib=Math.max(lifeCap-tC,0);
 var scee=isREEE&&contrib>0?Math.min(contrib*0.2,500):0;
 var interest=acc*rt;
 acc=acc+interest+contrib+scee;
@@ -1991,6 +2002,7 @@ var data=JSON.parse(decoded);
 if(!data.expenses||!data.investments){popupAlert('Erreur','Code de transfert invalide.');return false;}
 pushUndo();
 state=Object.assign(defaultState(),data);
+migrateInvestments();
 applyTheme();
 save();renderAll();updateProfileDisplay();
 return true;
@@ -2103,7 +2115,7 @@ applyTransferCode(decodeURIComponent(transfer));
 }
 }
 function exportCSV(){var rows=[['Categorie','Groupe','Annuel','Mensuel','Type']];state.expenses.forEach(function(e){var a=catAnnual(e);if(a>0)rows.push([e.name,e.group,a.toFixed(2),(a/12).toFixed(2),'Depense']);});state.investments.forEach(function(inv){var a=catAnnual(inv);if(a>0)rows.push([inv.name,'Placement',a.toFixed(2),(a/12).toFixed(2),'Placement']);});var csv=rows.map(function(r){return r.map(function(c){return'"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');var b=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='budget-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(u);}
-function importData(ev){var f=ev.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){try{var d=JSON.parse(e.target.result);if(!d.expenses||!d.investments){popupAlert('Erreur','Fichier invalide.');return;}pushUndo();state=Object.assign(defaultState(),d);applyTheme();renderAll();popupAlert('Succes','Importe.');}catch(err){popupAlert('Erreur','JSON invalide.');}};r.readAsText(f);ev.target.value='';}
+function importData(ev){var f=ev.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){try{var d=JSON.parse(e.target.result);if(!d.expenses||!d.investments){popupAlert('Erreur','Fichier invalide.');return;}pushUndo();state=Object.assign(defaultState(),d);migrateInvestments();applyTheme();renderAll();popupAlert('Succes','Importe.');}catch(err){popupAlert('Erreur','JSON invalide.');}};r.readAsText(f);ev.target.value='';}
 function resetAll(){popupConfirm('Reinitialiser','Tout effacer?',function(){pushUndo();var t=state.theme;state=defaultState();state.theme=t;save();renderAll();});}
 
 /* Force non-negative for number inputs */
