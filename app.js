@@ -444,7 +444,7 @@ changes.push('Objectif cree: Mise de fonds');
 }
 if(hasGoal('retraite')){
 var retTarget=age?(Math.max(65-age,5))*12000:500000;
-state.goals.push({id:gid('g'),type:'retraite',name:'Retraite',target:retTarget,current:0,contrib:400,freq:'12',rate:6,deadline:'',priority:'haute'});
+state.goals.push({id:gid('g'),type:'retraite',name:'Retraite',target:retTarget,current:0,contrib:400,freq:'12',rate:6,deadline:'',priority:'haute',retireAge:65,retireIncome:3000});
 changes.push('Objectif cree: Retraite');
 }
 if(hasGoal('fire')){
@@ -1191,10 +1191,53 @@ addDetail(det,'Contribution',fmt(mC)+'/mois');
 if(g.rate>0)addDetail(det,'Rendement',g.rate+'%');
 if(mL>0&&mL<999)addDetail(det,'Temps',Math.floor(mL/12)+'a '+mL%12+'m');
 if(projDate)addDetail(det,'Atteint',projDate);
+/* Extra detail cards: Total projete & Interet gagne */
+if(mL>0&&mL<999&&mC>0){var mr2=rate/12;var totalProj=g.current;for(var mm=0;mm<mL;mm++){totalProj=totalProj*(1+mr2)+mC;}var interetGagne=totalProj-g.current-(mC*mL);addDetail(det,'Total projete',fmtS(totalProj));addDetail(det,'Interet gagne',fmtS(interetGagne),'var(--success)');}
 row.appendChild(det);
+/* Retirement-specific panel */
+if(g.type==='retraite'){(function(idx){
+var rp=document.createElement('div');rp.className='goal-retire-panel';rp.style.cssText='background:var(--bg-tertiary);border-radius:var(--radius);padding:16px;margin-top:12px';
+var rpTitle=document.createElement('div');rpTitle.style.cssText='font-weight:700;font-size:14px;margin-bottom:12px';rpTitle.textContent='Planification retraite';rp.appendChild(rpTitle);
+var rpGrid=document.createElement('div');rpGrid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px';
+/* Editable: Age de retraite */
+var raDiv=document.createElement('div');var raLbl=document.createElement('div');raLbl.style.cssText='color:var(--text-muted);margin-bottom:4px';raLbl.textContent='Age de retraite';raDiv.appendChild(raLbl);
+var raInp=document.createElement('input');raInp.type='number';raInp.value=state.goals[idx].retireAge||65;raInp.min='50';raInp.max='80';raInp.style.cssText='padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-primary);font-size:13px;width:80px;font-weight:600';
+raInp.oninput=function(){state.goals[idx].retireAge=parseInt(this.value)||65;debouncedRecalc();};raDiv.appendChild(raInp);rpGrid.appendChild(raDiv);
+/* Editable: Revenu mensuel souhaite */
+var riDiv=document.createElement('div');var riLbl=document.createElement('div');riLbl.style.cssText='color:var(--text-muted);margin-bottom:4px';riLbl.textContent='Revenu mensuel souhaite';riDiv.appendChild(riLbl);
+var riInp=document.createElement('input');riInp.type='number';riInp.value=state.goals[idx].retireIncome||3000;riInp.step='100';riInp.min='0';riInp.style.cssText='padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-primary);font-size:13px;width:120px;font-weight:600';
+riInp.oninput=function(){state.goals[idx].retireIncome=parseFloat(this.value)||3000;debouncedRecalc();};riDiv.appendChild(riInp);riDiv.appendChild(document.createTextNode(' $/mois'));rpGrid.appendChild(riDiv);
+/* Calculated retirement values */
+var retireAge=state.goals[idx].retireAge||65;var retireIncome=state.goals[idx].retireIncome||3000;
+var capitalNeeded=retireIncome*12/0.04;var manque=Math.max(capitalNeeded-g.current,0);
+var curAge=getProfileAge()||30;var anneesRest=Math.max(retireAge-curAge,1);
+var moisRest=anneesRest*12;var mrRet=rate/12;var contribReq=0;
+if(mrRet>0){contribReq=(capitalNeeded-g.current*Math.pow(1+mrRet,moisRest))*mrRet/(Math.pow(1+mrRet,moisRest)-1);}else{contribReq=manque/moisRest;}
+if(contribReq<0)contribReq=0;
+var calcItems=[['Capital necessaire',fmt(capitalNeeded)],['Manque',fmt(manque)],['Contribution requise',fmt(Math.ceil(contribReq))+'/mois'],['Annees restantes',anneesRest+' ans']];
+calcItems.forEach(function(item){var cd=document.createElement('div');var cl=document.createElement('div');cl.style.cssText='color:var(--text-muted);margin-bottom:4px';cl.textContent=item[0];cd.appendChild(cl);var cv=document.createElement('div');cv.style.cssText='font-weight:600';cv.textContent=item[1];cd.appendChild(cv);rpGrid.appendChild(cd);});
+rp.appendChild(rpGrid);row.appendChild(rp);
+})(i);}
+/* FIRE-specific panel */
+if(g.name&&g.name.toUpperCase().indexOf('FIRE')!==-1){(function(idx){
+var fp=document.createElement('div');fp.className='goal-fire-panel';fp.style.cssText='background:var(--bg-tertiary);border-radius:var(--radius);padding:16px;margin-top:12px';
+var fpTitle=document.createElement('div');fpTitle.style.cssText='font-weight:700;font-size:14px;margin-bottom:12px';fpTitle.textContent='Indicateurs FIRE';fp.appendChild(fpTitle);
+var fpGrid=document.createElement('div');fpGrid.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:13px';
+var annualExpenses=0;if(state.expenses){state.expenses.forEach(function(e){annualExpenses+=toAnnual(e.amount||0,e.freq||'12');});}
+var fireNumber=annualExpenses>0?annualExpenses/0.04:0;
+var fireItems=[];
+fireItems.push(['Nombre FIRE',fireNumber>0?fmtS(fireNumber):'--']);
+var annualIncome=0;if(state.incomes){state.incomes.forEach(function(inc){annualIncome+=toAnnual(inc.amount||0,inc.freq||'12');});}
+var tauxEpargne=annualIncome>0?((annualIncome-annualExpenses)/annualIncome*100).toFixed(1)+'%':'--';
+fireItems.push(['Taux d\'epargne',tauxEpargne]);
+var fireProg=fireNumber>0?(g.current/fireNumber*100).toFixed(1)+'%':'--';
+fireItems.push(['Progression',fireProg]);
+fireItems.forEach(function(item){var fd=document.createElement('div');var fl2=document.createElement('div');fl2.style.cssText='color:var(--text-muted);margin-bottom:4px';fl2.textContent=item[0];fd.appendChild(fl2);var fv=document.createElement('div');fv.style.cssText='font-weight:600';fv.textContent=item[1];fd.appendChild(fv);fpGrid.appendChild(fd);});
+fp.appendChild(fpGrid);row.appendChild(fp);
+})(i);}
 /* Editable amount */
 var ed=document.createElement('div');ed.style.cssText='display:flex;gap:10px;margin-top:12px;align-items:center;font-size:12px;padding-top:10px;border-top:1px solid var(--border)';
-var lb=document.createElement('span');lb.textContent='Epargne:';lb.style.cssText='color:var(--text-muted)';ed.appendChild(lb);
+var lb=document.createElement('span');lb.textContent='Deja accumule:';lb.style.cssText='color:var(--text-muted)';ed.appendChild(lb);
 var ci=document.createElement('input');ci.type='number';ci.value=g.current||'';ci.step='100';ci.min='0';ci.style.cssText='padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-primary);font-size:14px;width:140px;font-weight:700';
 (function(idx){ci.oninput=function(){state.goals[idx].current=parseFloat(this.value)||0;debouncedRecalc();};})(i);
 ed.appendChild(ci);ed.appendChild(document.createTextNode(' $'));row.appendChild(ed);
@@ -1204,7 +1247,7 @@ function openGoalModal(idx){var isEdit=typeof idx==='number'&&idx>=0;document.ge
 if(isEdit){var g=state.goals[idx];document.getElementById('goal-modal-type').value=g.type||'autre';document.getElementById('goal-modal-name').value=g.name||'';document.getElementById('goal-modal-target').value=g.target||'';document.getElementById('goal-modal-current').value=g.current||'';document.getElementById('goal-modal-contrib').value=g.contrib||'';document.getElementById('goal-modal-freq').value=g.freq||'12';document.getElementById('goal-modal-rate').value=g.rate||0;document.getElementById('goal-modal-deadline').value=g.deadline||'';document.getElementById('goal-modal-priority').value=g.priority||'moyenne';}else{['goal-modal-name','goal-modal-target','goal-modal-current','goal-modal-contrib','goal-modal-deadline'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('goal-modal-rate').value='0';document.getElementById('goal-modal-priority').value='moyenne';}
 document.getElementById('goal-modal-overlay').classList.add('active');document.getElementById('goal-modal-name').focus();}
 function closeGoalModal(){document.getElementById('goal-modal-overlay').classList.remove('active');}
-function confirmGoal(){pushUndo();var type=document.getElementById('goal-modal-type').value;var obj={id:gid('g'),type:type,name:document.getElementById('goal-modal-name').value.trim()||(GOAL_TYPES[type]||{l:'Autre'}).l,target:parseFloat(document.getElementById('goal-modal-target').value)||0,current:parseFloat(document.getElementById('goal-modal-current').value)||0,contrib:parseFloat(document.getElementById('goal-modal-contrib').value)||0,freq:document.getElementById('goal-modal-freq').value,rate:parseFloat(document.getElementById('goal-modal-rate').value)||0,deadline:document.getElementById('goal-modal-deadline').value||'',priority:document.getElementById('goal-modal-priority').value};var idx=parseInt(document.getElementById('goal-modal-edit-idx').value);if(idx>=0&&state.goals[idx]){obj.id=state.goals[idx].id;state.goals[idx]=obj;}else state.goals.push(obj);closeGoalModal();renderAll();}
+function confirmGoal(){pushUndo();var type=document.getElementById('goal-modal-type').value;var obj={id:gid('g'),type:type,name:document.getElementById('goal-modal-name').value.trim()||(GOAL_TYPES[type]||{l:'Autre'}).l,target:parseFloat(document.getElementById('goal-modal-target').value)||0,current:parseFloat(document.getElementById('goal-modal-current').value)||0,contrib:parseFloat(document.getElementById('goal-modal-contrib').value)||0,freq:document.getElementById('goal-modal-freq').value,rate:parseFloat(document.getElementById('goal-modal-rate').value)||0,deadline:document.getElementById('goal-modal-deadline').value||'',priority:document.getElementById('goal-modal-priority').value};var idx=parseInt(document.getElementById('goal-modal-edit-idx').value);if(idx>=0&&state.goals[idx]){obj.id=state.goals[idx].id;if(state.goals[idx].retireAge)obj.retireAge=state.goals[idx].retireAge;if(state.goals[idx].retireIncome)obj.retireIncome=state.goals[idx].retireIncome;state.goals[idx]=obj;}else state.goals.push(obj);closeGoalModal();renderAll();}
 
 /* Net Worth */
 function renderNetWorth(){var al=document.getElementById('nw-assets-list'),ll=document.getElementById('nw-liabilities-list');if(!al)return;al.textContent='';ll.textContent='';
