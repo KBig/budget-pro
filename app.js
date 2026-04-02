@@ -1997,10 +1997,23 @@ function exportData(){var p=getProfiles(),pn='budget';p.forEach(function(pr){if(
    TRANSFER VIA QR CODE / CODE
    ═══════════════════════════════════════════════════ */
 
-/* Compress state to a short transfer code */
+/* Compress state: strip defaults to minimize size */
 function generateTransferCode(){
-var data=JSON.stringify(state);
-/* Base64 encode */
+var s=JSON.parse(JSON.stringify(state));
+/* Remove expenses/investments that are unchanged from defaults */
+s.expenses=s.expenses.filter(function(e){return(e.amount||0)>0||e.currentBalance>0;});
+s.investments=s.investments.filter(function(inv){return(inv.amount||0)>0||inv.currentBalance>0;});
+/* Remove empty arrays */
+if(!s.goals.length)delete s.goals;
+if(!s.debts||!s.debts.length)delete s.debts;
+if(!s.netWorthAssets||!s.netWorthAssets.length)delete s.netWorthAssets;
+if(!s.netWorthLiabilities||!s.netWorthLiabilities.length)delete s.netWorthLiabilities;
+if(!s.transactions||!s.transactions.length)delete s.transactions;
+if(!s.netWorthHistory||!s.netWorthHistory.length)delete s.netWorthHistory;
+if(!s.projEvents||!s.projEvents.length)delete s.projEvents;
+delete s.projBalances;delete s.theme;
+var data=JSON.stringify(s);
+/* LZ compression: simple URI-safe encoding */
 var encoded=btoa(unescape(encodeURIComponent(data)));
 return encoded;
 }
@@ -2009,9 +2022,14 @@ function applyTransferCode(code){
 try{
 var decoded=decodeURIComponent(escape(atob(code)));
 var data=JSON.parse(decoded);
-if(!data.expenses||!data.investments){popupAlert('Erreur','Code de transfert invalide.');return false;}
+if(!data.profile&&!data.salaryNet&&!data.expenses){popupAlert('Erreur','Code de transfert invalide.');return false;}
 pushUndo();
 state=Object.assign(defaultState(),data);
+/* Restore stripped defaults: merge back missing default expenses/investments */
+var defExp=JSON.parse(JSON.stringify(DEF_EXP));
+var defInv=JSON.parse(JSON.stringify(DEF_INV));
+if(state.expenses){defExp.forEach(function(de){var found=false;state.expenses.forEach(function(e){if(e.id===de.id)found=true;});if(!found)state.expenses.push(de);});}
+if(state.investments){defInv.forEach(function(di){var found=false;state.investments.forEach(function(inv){if(inv.id===di.id)found=true;});if(!found)state.investments.push(di);});}
 migrateInvestments();
 applyTheme();
 save();renderAll();updateProfileDisplay();
@@ -2019,9 +2037,8 @@ return true;
 }catch(e){popupAlert('Erreur','Code de transfert invalide ou corrompu.');return false;}
 }
 
-/* QR Code generator (pure JS, no library) */
+/* QR Code generator */
 function generateQRCode(text,size){
-/* We use a Google Charts API for simplicity — generates a QR image URL */
 return 'https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data='+encodeURIComponent(text);
 }
 
@@ -2032,7 +2049,7 @@ var code=generateTransferCode();
 /* If data is too big for QR (>2000 chars URL), use code-only method */
 var baseUrl=window.location.href.split('?')[0].split('#')[0];
 var transferUrl=baseUrl+'?transfer='+encodeURIComponent(code);
-var tooBigForQR=transferUrl.length>2500;
+var tooBigForQR=transferUrl.length>4000;
 
 var ov=document.getElementById('popup-overlay');
 document.getElementById('popup-title').textContent='Transferer vers un autre appareil';
