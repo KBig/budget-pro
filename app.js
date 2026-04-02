@@ -1008,12 +1008,6 @@ var item=list.splice(fromIdx,1)[0];list.splice(toIdx>fromIdx?toIdx-1:toIdx,0,ite
 var nd=document.createElement('div');nd.className='category-name';nd.appendChild(document.createTextNode(cat.name));
 if(cat.desc){var sm=document.createElement('small');sm.textContent=cat.desc;nd.appendChild(sm);}
 if(type==='investment'){var info=document.createElement('div');info.className='placement-info';
-var balTag=document.createElement('span');balTag.className='info-tag';balTag.style.cssText='display:inline-flex;align-items:center;gap:4px';
-var balLbl=document.createElement('span');balLbl.textContent='Solde: ';balTag.appendChild(balLbl);
-var balInp=document.createElement('input');balInp.type='number';balInp.value=cat.currentBalance||'';balInp.placeholder='0';balInp.step='100';balInp.min='0';
-balInp.style.cssText='width:90px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-secondary);color:var(--text-primary);font-size:11px;font-weight:700;text-align:right';
-balInp.dataset.idx=i;balInp.oninput=function(){state.investments[parseInt(this.dataset.idx)].currentBalance=parseFloat(this.value)||0;debouncedRecalc();};
-balTag.appendChild(balInp);balTag.appendChild(document.createTextNode(' $'));info.appendChild(balTag);
 if(cat.limit>0){var t=document.createElement('span');t.className='info-tag';t.textContent='Plafond: '+fmt(cat.limit)+'/an';info.appendChild(t);}
 if(cat.lifetimeLimit>0){var t2=document.createElement('span');t2.className='info-tag';t2.textContent='Max vie: '+fmtS(cat.lifetimeLimit);info.appendChild(t2);}
 if(cat.rate){var t3=document.createElement('span');t3.className='info-tag';t3.textContent='Rend: '+cat.rate+'%';info.appendChild(t3);}
@@ -1033,7 +1027,19 @@ var ad=document.createElement('div');ad.className='category-annual';ad.appendChi
 row.appendChild(ad);
 var rb=document.createElement('button');rb.className='remove-btn';rb.textContent='\u2715';
 (function(t2,i2,n){rb.onclick=function(){popupConfirm('Supprimer','Supprimer "'+n+'"?',function(){pushUndo();(t2==='expense'?state.expenses:state.investments).splice(i2,1);renderAll();});};})(type,i,cat.name);
-row.appendChild(rb);return row;}
+row.appendChild(rb);
+/* Balance row for investments */
+if(type==='investment'){
+var balRow=document.createElement('div');balRow.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 16px 4px;font-size:12px';
+var balLabel=document.createElement('span');balLabel.style.cssText='color:var(--text-muted);font-weight:600;white-space:nowrap';balLabel.textContent='Solde actuel dans ce compte:';balRow.appendChild(balLabel);
+var balInp=document.createElement('input');balInp.type='number';balInp.value=cat.currentBalance||'';balInp.placeholder='Combien avez-vous deja?';balInp.step='100';balInp.min='0';
+balInp.style.cssText='flex:1;max-width:180px;padding:7px 10px;border:1.5px solid var(--border-strong);border-radius:8px;background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-weight:700';
+balInp.dataset.idx=i;balInp.oninput=function(){state.investments[parseInt(this.dataset.idx)].currentBalance=parseFloat(this.value)||0;debouncedRecalc();};
+balRow.appendChild(balInp);
+var balUnit=document.createElement('span');balUnit.style.cssText='color:var(--text-muted);font-weight:700';balUnit.textContent='$';balRow.appendChild(balUnit);
+var wrapper=document.createElement('div');wrapper.appendChild(row);wrapper.appendChild(balRow);
+return wrapper;}
+return row;}
 
 var openGroups={};
 function toggleGroup(t,g){var k=t+':'+g;openGroups[k]=!openGroups[k];document.querySelectorAll('.category-group[data-group="'+g+'"][data-type="'+t+'"]').forEach(function(el){el.classList.toggle('collapsed',!openGroups[k]);});}
