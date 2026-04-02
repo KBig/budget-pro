@@ -2056,7 +2056,8 @@ var p=getProfiles();
 p.push({id:id,name:name,lastModified:new Date().toISOString()});
 saveProfiles(p);currentProfileId=id;localStorage.setItem('budget-current-profile',id);save();
 }
-renderAll();updateProfileDisplay();hideProfileScreen();
+hideProfileScreen();updateProfileDisplay();buildMainContent();renderAll();
+popupAlert('Transfert reussi','Le profil de '+(state.profile&&state.profile.name||'Import')+' a ete importe avec succes.');
 return true;
 }catch(e){popupAlert('Erreur','Code de transfert invalide ou corrompu. Verifiez que vous avez copie le code en entier.');return false;}
 }
